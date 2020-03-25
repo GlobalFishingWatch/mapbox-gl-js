@@ -1,0 +1,9 @@
+{
+  "eslint.enable": false,
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {},
+  "javascript.validate.enable": false,
+  "prettier.tabWidth": 2,
+  "prettier.arrowParens": "always",
+  "prettier.singleQuote": true,
+}
