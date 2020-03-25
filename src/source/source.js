@@ -84,6 +84,7 @@ type SourceStatics = {
 export type SourceClass = Class<Source> & SourceStatics;
 
 import vector from '../source/vector_tile_source';
+import fourwinds from '../source/vector_fourwinds_tile_source';
 import raster from '../source/raster_tile_source';
 import rasterDem from '../source/raster_dem_tile_source';
 import geojson from '../source/geojson_source';
@@ -96,6 +97,7 @@ import type {SourceSpecification} from '../style-spec/types';
 const sourceTypes = {
     vector,
     raster,
+    fourwinds,
     'raster-dem': rasterDem,
     geojson,
     video,
