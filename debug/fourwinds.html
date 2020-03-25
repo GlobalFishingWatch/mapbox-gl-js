@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mapbox GL JS debug page</title>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel='stylesheet' href='../dist/mapbox-gl.css' />
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+    </style>
+</head>
+
+<body>
+<div id='map'></div>
+
+<script src='../dist/mapbox-gl-dev.js'></script>
+<script src='../debug/access_token_generated.js'></script>
+<script>
+
+var style = {
+    version: 8,
+    name: "4winds mapbox fork",
+    sources: {
+        points: {
+            type: "fourwinds",
+            tiles: [
+                "https://storage.googleapis.com/cilex-books-map-tiles/points/{z}/{x}/{y}.pbf"
+            ]
+        }
+    },
+    layers: [
+        {
+            id: "background",
+            type: "background",
+            paint: { "background-color": "rgb(4,7,14)" }
+        },
+        {
+            id: "points",
+            type: "circle",
+            source: "points",
+            "source-layer": "books-rank1",
+            paint: {
+                "circle-radius": 20,
+                "circle-color": "#e55e5e"
+            }
+        },
+        {
+            id: "points2",
+            type: "circle",
+            source: "points",
+            "source-layer": "books-rank2",
+            paint: {
+                "circle-radius": 10,
+                "circle-color": "#e55e1a"
+            }
+        },
+        {
+            id: "points3",
+            type: "circle",
+            source: "points",
+            "source-layer": "books-rank3",
+            paint: {
+                "circle-radius": 5,
+                "circle-color": "#e55efa"
+            }
+        }
+    ]
+};
+
+
+var map = window.map = new mapboxgl.Map({
+    container: 'map',
+    zoom: 12.5,
+    center: [-15.61, 53],
+    style: style,
+    hash: true
+});
+
+</script>
+</body>
+</html>
