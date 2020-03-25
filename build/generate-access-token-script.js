@@ -1,5 +1,7 @@
 /* eslint-disable */
 'use strict';
+require('dotenv').config();
+
 const fs = require('fs');
 const path = require('path');
 const script = fs.readFileSync(path.join(__dirname, '../debug/access_token.js'), 'utf-8')
