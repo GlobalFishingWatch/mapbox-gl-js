@@ -123,6 +123,7 @@
   },
   "esm": true,
   "scripts": {
+    "build": "run-s build-dev build-prod-min build-prod build-csp build-css build-style-spec",
     "build-dev": "rollup -c --environment BUILD:dev",
     "watch-dev": "rollup -c --environment BUILD:dev --watch",
     "build-prod": "rollup -c --environment BUILD:production",
