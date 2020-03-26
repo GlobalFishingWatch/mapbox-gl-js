@@ -23,10 +23,17 @@ var style = {
     name: "4winds mapbox fork",
     sources: {
         points: {
-            type: "fourwinds",
+            type: "temporalgrid",
             tiles: [
-                "https://storage.googleapis.com/cilex-books-map-tiles/points/{z}/{x}/{y}.pbf"
-            ]
+                "https://storage.googleapis.com/cilex-books-map-tiles/points/{z}/{x}/{y}.pbf?tileset=fishing_64cells"
+            ],
+            aggregationConfig: {
+                geomType: "gridded", //blob | gridded | extruded
+                quantizeOffset: 0,
+                delta: 10,
+                singleFrame: false,
+                start: "2019-01-01T00:00:00.000Z",
+            }
         }
     },
     layers: [

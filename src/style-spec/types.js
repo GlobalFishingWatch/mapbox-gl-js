@@ -92,12 +92,21 @@ export type VectorSourceSpecification = {
     "promoteId"?: PromoteIdSpecification
 }
 
-export type FourwindsVectorSourceSpecification = {
-    "type": "fourwinds",
+export type TemporalGridAggregationConfigSpecification = {
+    "geomType": string,
+    "quantizeOffset": string,
+    "delta": string,
+    "singleFrame": string,
+    "start": string,
+}
+
+export type TemporalGridSourceSpecification = {
+    "type": "temporalgrid",
     "url"?: string,
+    "aggregationConfig": TemporalGridAggregationConfigSpecification,
     "tiles"?: Array<string>,
     "bounds"?: [number, number, number, number],
-    "scheme"?: "xyz" | "tms",
+    "scheme"?: "xyz",
     "minzoom"?: number,
     "maxzoom"?: number,
     "attribution"?: string,
@@ -158,7 +167,7 @@ export type ImageSourceSpecification = {|
 
 export type SourceSpecification =
     | VectorSourceSpecification
-    | FourwindsVectorSourceSpecification
+    | TemporalGridSourceSpecification
     | RasterSourceSpecification
     | RasterDEMSourceSpecification
     | GeoJSONSourceSpecification
