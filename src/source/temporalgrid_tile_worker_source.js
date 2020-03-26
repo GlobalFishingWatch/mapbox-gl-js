@@ -4,6 +4,15 @@ import { getArrayBuffer } from "../util/ajax";
 import Protobuf from "pbf";
 import { VectorTile } from "@mapbox/vector-tile";
 
+// import type {
+//     WorkerTileParameters,
+// } from "../source/worker_source";
+// import type { TemporalGridAggregationConfigSpecification } from "../style-spec/types";
+
+// export type TemporalGridWorkerTileParameters = WorkerTileParameters & {
+//     aggregationConfig: TemporalGridAggregationConfigSpecification
+// };
+
 const loadVectorData = (params, callback) => {
     const request = getArrayBuffer(
         params.request,
@@ -11,7 +20,6 @@ const loadVectorData = (params, callback) => {
             if (err) {
                 callback(err);
             } else if (data) {
-                console.log('loadVectorData -> data', data)
                 callback(null, {
                     vectorTile: new VectorTile(new Protobuf(data)),
                     rawData: data,
@@ -27,10 +35,10 @@ const loadVectorData = (params, callback) => {
     };
 };
 
-class FourWindsVectorTileWorkerSource extends VectorTileWorkerSource {
+class TemporalGridTileWorkerSource extends VectorTileWorkerSource {
     constructor(actor, layerIndex, availableImages) {
         super(actor, layerIndex, availableImages, loadVectorData);
     }
 }
 
-export default FourWindsVectorTileWorkerSource;
+export default TemporalGridTileWorkerSource;

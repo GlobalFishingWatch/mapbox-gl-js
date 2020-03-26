@@ -112,7 +112,7 @@
   },
   "source": [
     "source_vector",
-    "source_fourwinds",
+    "source_temporalgrid",
     "source_raster",
     "source_raster_dem",
     "source_geojson",
@@ -198,16 +198,54 @@
       "doc": "Other keys to configure the data source."
     }
   },
-  "source_fourwinds": {
+  "source_temporalgrid": {
     "type": {
       "required": true,
       "type": "enum",
       "values": {
-        "fourwinds": {
+        "temporalgrid": {
           "doc": "A vector tile source."
         }
       },
       "doc": "The type of the source."
+    },
+    "aggregationConfig": {
+      "geomType": {
+        "type": "enum",
+        "values": {
+          "blob": {
+            "doc": ""
+          },
+          "gridded": {
+            "doc": ""
+          },
+          "extruded": {
+            "doc": ""
+          }
+        },
+        "default": "gridded",
+        "doc": ""
+      },
+      "quantizeOffset": {
+        "type": "number",
+        "doc": "",
+        "default": 0
+      },
+      "delta": {
+        "type": "number",
+        "doc": "",
+        "default": 10
+      },
+      "singleFrame": {
+        "type": "boolean",
+        "doc": "",
+        "default": false
+      },
+      "start": {
+        "type": "string",
+        "doc": "",
+        "required": true
+      }
     },
     "url": {
       "type": "string",
@@ -235,9 +273,6 @@
       "values": {
         "xyz": {
           "doc": "Slippy map tilenames scheme."
-        },
-        "tms": {
-          "doc": "OSGeo spec scheme."
         }
       },
       "default": "xyz",
