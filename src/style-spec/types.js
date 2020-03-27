@@ -93,18 +93,9 @@ export type VectorSourceSpecification = {
     "volatile"?: boolean
 }
 
-export type TemporalGridAggregationConfigSpecification = {
-    "geomType": string,
-    "quantizeOffset": string,
-    "delta": string,
-    "singleFrame": string,
-    "start": string,
-}
-
 export type TemporalGridSourceSpecification = {
     "type": "temporalgrid",
     "url"?: string,
-    "aggregationConfig": TemporalGridAggregationConfigSpecification,
     "tiles"?: Array<string>,
     "bounds"?: [number, number, number, number],
     "scheme"?: "xyz",
