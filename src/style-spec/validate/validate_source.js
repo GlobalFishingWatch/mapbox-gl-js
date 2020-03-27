@@ -11,11 +11,6 @@ const objectElementValidators = {
     promoteId: validatePromoteId
 };
 
-const TemporalGridElementValidators = {
-    promoteId: validatePromoteId,
-    aggregationConfig: validateTemporalGridAggregationConfig
-};
-
 export default function validateSource(options) {
     const value = options.value;
     const key = options.key;
@@ -32,6 +27,7 @@ export default function validateSource(options) {
     switch (type) {
     case 'vector':
     case 'raster':
+    case 'temporalgrid':
     case 'raster-dem':
         errors = validateObject({
             key,
@@ -40,18 +36,6 @@ export default function validateSource(options) {
             style: options.style,
             styleSpec,
             objectElementValidators
-        });
-        return errors;
-
-
-    case 'temporalgrid':
-        errors = validateObject({
-            key,
-            value,
-            valueSpec: styleSpec[`source_${type.replace('-', '_')}`],
-            style: options.style,
-            styleSpec,
-            TemporalGridElementValidators
         });
         return errors;
 
@@ -122,18 +106,6 @@ function validatePromoteId({key, value}) {
         const errors = [];
         for (const prop in value) {
             errors.push(...validateString({key: `${key}.${prop}`, value: value[prop]}));
-        }
-        return errors;
-    }
-}
-
-function validateTemporalGridAggregationConfig({ key, value }) {
-    if (getType(value) === 'object') {
-        return validateObject({key, value});
-    } else {
-        const errors = [];
-        for (const prop in value) {
-            errors.push(...validateObject({key: `${key}.${prop}`, value: value[prop]}));
         }
         return errors;
     }
