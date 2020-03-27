@@ -8,71 +8,62 @@
     <style>
         body { margin: 0; padding: 0; }
         html, body, #map { height: 100%; }
+
+        .buttons-container { position: absolute; top: 0; left: 0; }
     </style>
 </head>
 
 <body>
 <div id='map'></div>
 
+<div class="buttons-container">
+    <button id="updatesource">update source style</button>
+    <button id="updatelayer">update layer style</button>
+</div>
+
 <script src='../dist/mapbox-gl-dev.js'></script>
 <script src='../debug/access_token_generated.js'></script>
 <script>
-
-var style = {
-    version: 8,
-    name: "4winds mapbox fork",
-    sources: {
-        points: {
-            type: "temporalgrid",
-            tiles: [
-                "https://storage.googleapis.com/cilex-books-map-tiles/points/{z}/{x}/{y}.pbf?tileset=fishing_64cells"
-            ],
-            aggregationConfig: {
-                geomType: "gridded", //blob | gridded | extruded
-                quantizeOffset: 0,
-                delta: 10,
-                singleFrame: false,
-                start: "2019-01-01T00:00:00.000Z",
-            }
-        }
-    },
-    layers: [
-        {
-            id: "background",
-            type: "background",
-            paint: { "background-color": "rgb(4,7,14)" }
-        },
-        {
-            id: "points",
-            type: "circle",
-            source: "points",
-            "source-layer": "books-rank1",
-            paint: {
-                "circle-radius": 20,
-                "circle-color": "#e55e5e"
-            }
-        },
-        {
-            id: "points2",
-            type: "circle",
-            source: "points",
-            "source-layer": "books-rank2",
-            paint: {
-                "circle-radius": 10,
-                "circle-color": "#e55e1a"
-            }
-        },
-        {
-            id: "points3",
-            type: "circle",
-            source: "points",
-            "source-layer": "books-rank3",
-            paint: {
-                "circle-radius": 5,
-                "circle-color": "#e55efa"
-            }
-        }
-    ]
+const apiTilesUrl = 'https://fst-tiles-jzzp2ui3wq-uc.a.run.app/v1';
+const tileset = 'carriers_v2';
+const id = 'heatmap';
+const style = {
+  version: 8,
+  name: '4winds mapbox fork',
+  sources: {
+    [id]: {
+      type: 'temporalgrid',
+      tiles: [`${apiTilesUrl}/${tileset}/tile/heatmap/{z}/{x}/{y}`],
+    }
+  },
+  layers: [
+    {
+      id,
+      type: 'fill',
+      source: id,
+      'source-layer': tileset,
+      layout: {
+        visibility: 'visible'
+      },
+      paint: {
+        'fill-color': [
+          'interpolate',
+          ['linear'],
+          ['to-number', ['get', '3']],
+          0,
+          'rgba(12, 39, 108, 0)',
+          1,
+          'rgb(12, 39, 108)',
+          2,
+          '#114685',
+          3,
+          '#00ffc3',
+          4,
+          '#ffffff'
+        ]
+      }
+    }
+  ]
 };
 
 
@@ -82,6 +73,25 @@ var map = window.map = new mapboxgl.Map({
     center: [-15.61, 53],
     style: style,
     hash: true
+});
+
+function getRandomColor() {
+  var letters = '0123456789ABCDEF';
+  var color = '#';
+  for (var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
+
+document.getElementById('updatelayer').addEventListener('click', () => {
+    map.setPaintProperty('points', 'circle-color', getRandomColor())
+});
+
+document.getElementById('updatesource').addEventListener('click', () => {
+    const sourceId = 'points'
+    const source = map.getSource(sourceId)
+    source.tiles = [ `${source.tiles[0]}?start=${Date.now()}` ]
 });
 
 </script>
