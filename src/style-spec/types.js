@@ -92,18 +92,6 @@ export type VectorSourceSpecification = {
     "promoteId"?: PromoteIdSpecification
 }
 
-export type TemporalGridSourceSpecification = {
-    "type": "temporalgrid",
-    "url"?: string,
-    "tiles"?: Array<string>,
-    "bounds"?: [number, number, number, number],
-    "scheme"?: "xyz",
-    "minzoom"?: number,
-    "maxzoom"?: number,
-    "attribution"?: string,
-    "promoteId"?: PromoteIdSpecification
-}
-
 export type RasterSourceSpecification = {
     "type": "raster",
     "url"?: string,
@@ -158,7 +146,6 @@ export type ImageSourceSpecification = {|
 
 export type SourceSpecification =
     | VectorSourceSpecification
-    | TemporalGridSourceSpecification
     | RasterSourceSpecification
     | RasterDEMSourceSpecification
     | GeoJSONSourceSpecification
