@@ -62,8 +62,8 @@ export const rawTileToIntArray = (rawTileArrayBuffer, { tileset }) => {
 }
 
 const getCellCoords = (tileBBox, cell, numCells) => {
-  const col = cell % numCells
-  const row = Math.floor(cell / numCells)
+  const col = cell % numCells.lon
+  const row = Math.floor(cell / numCells.lon)
   const [minX, minY, maxX, maxY] = tileBBox
   const width = maxX - minX
   const height = maxY - minY
@@ -79,8 +79,8 @@ const getPointGeom = (tileBBox, cell, numCells) => {
   const [minX, minY] = tileBBox
   const { col, row, width, height } = getCellCoords(tileBBox, cell, numCells)
 
-  const pointMinX = minX + (col / numCells) * width
-  const pointMinY = minY + (row / numCells) * height
+  const pointMinX = minX + (col / numCells.lon) * width
+  const pointMinY = minY + (row / numCells.lat) * height
 
   return {
     type: 'Point',
@@ -92,10 +92,10 @@ const getSquareGeom = (tileBBox, cell, numCells) => {
   const [minX, minY] = tileBBox
   const { col, row, width, height } = getCellCoords(tileBBox, cell, numCells)
 
-  const squareMinX = minX + (col / numCells) * width
-  const squareMinY = minY + (row / numCells) * height
-  const squareMaxX = minX + ((col + 1) / numCells) * width
-  const squareMaxY = minY + ((row + 1) / numCells) * height
+  const squareMinX = minX + (col / numCells.lon) * width
+  const squareMinY = minY + (row / numCells.lat) * height
+  const squareMaxX = minX + ((col + 1) / numCells.lon) * width
+  const squareMaxY = minY + ((row + 1) / numCells.lat) * height
   return {
     type: 'Polygon',
     coordinates: [
@@ -110,13 +110,24 @@ const getSquareGeom = (tileBBox, cell, numCells) => {
   }
 }
 
+const decodeProto = (data) => {
+    const readField = function (tag, obj, pbf) {
+        if (tag === 1) pbf.readPackedVarint(obj.data);
+    };
+    const read = function (pbf, end) {
+        return pbf.readFields(readField, {data: []}, end);
+    };
+    const pbfData = new Pbf(data)
+    const intArray = read(pbfData)
+    return intArray && intArray.data;
+};
+
 export const aggregate = (arrayBuffer, options) => {
   const {
     quantizeOffset,
     tileBBox,
     delta = 30,
     geomType = GEOM_TYPES.GRIDDED,
-    numCells = 64,
     singleFrameStart = null,
   } = options
   // TODO Here assuming that BLOB --> animation frame. Should it be configurable in another way?
@@ -177,9 +188,9 @@ export const aggregate = (arrayBuffer, options) => {
       }
     }
   }
-
-  const Int16ArrayBuffer = new Uint16Array(arrayBuffer)
-  for (let i = 0; i < Int16ArrayBuffer.length; i++) {
+  const Int16ArrayBuffer = decodeProto(arrayBuffer)
+  const numCells = { lat: Int16ArrayBuffer[0], lon: Int16ArrayBuffer[1] }
+  for (let i = 2; i < Int16ArrayBuffer.length; i++) {
     const value = Int16ArrayBuffer[i]
 
     switch (featureBufferPos) {
@@ -254,14 +265,13 @@ export const aggregate = (arrayBuffer, options) => {
 }
 
 const aggregateIntArray = (intArray, options) => {
-    const { geomType, numCells, delta, x, y, z, quantizeOffset, singleFrameStart } = options
+    const { geomType, delta, x, y, z, quantizeOffset, singleFrameStart } = options
     const tileBBox = tilebelt.tileToBBOX([x, y, z])
     const aggregated = aggregate(intArray, {
       quantizeOffset,
       tileBBox,
       delta,
       geomType,
-      numCells,
       singleFrameStart,
       // TODO make me configurable
       skipOddCells: false,

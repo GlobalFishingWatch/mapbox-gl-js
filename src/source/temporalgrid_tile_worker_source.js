@@ -1,13 +1,12 @@
 import Protobuf from "pbf";
 import vtpbf from 'vt-pbf'
 import geojsonVt from 'geojson-vt'
-import { VectorTile } from "@mapbox/vector-tile";
+import GeoJSONWrapper from './geojson_wrapper';
 import VectorTileWorkerSource from "./vector_tile_worker_source";
 import { getArrayBuffer } from "../util/ajax";
 import { extend } from "../util/util";
 import aggregateIntArray from "../util/aggregate";
 
-const TILESET_NUM_CELLS = 64
 const isoToDate = (iso) => {
     return new Date(iso).getTime()
 }
@@ -28,30 +27,29 @@ const getAggregationparams = (params) => {
         singleFrameStart: url.searchParams.get('singleFrameStart') === 'true',
         start: isoToDay(url.searchParams.get('start') || '2019-01-01T00:00:00.000Z'),
         serverSideFilters: url.searchParams.get('serverSideFilters'),
-        numCells: parseInt(url.searchParams.get('serverSideFilters') || TILESET_NUM_CELLS.toString())
     }
 }
 
 const getFinalurl = (originalUrl) => {
     const url = new URL(originalUrl)
-    const baseUrl = url.origin + url.pathname + '?intArray=true'
+    const baseUrl = url.origin + url.pathname + '?format=intArray'
     const serverSideFilters = url.searchParams.get('serverSideFilters')
     const finalUrl = serverSideFilters ? `${baseUrl}&filters=${serverSideFilters}` : baseUrl
     return decodeURI(finalUrl.toString())
 }
 
-const encodeTileResponse = (aggregatedGeoJSON, options) => {
-    const { x, y, z, tileset } = options
+const getVectorTileAggregated = (aggregatedGeoJSON, options) => {
+    const { x, y, z, tileset = 'carriers_v3' } = options
     const tileindex = geojsonVt(aggregatedGeoJSON)
     const newTile = tileindex.getTile(z, x, y)
-    const newBuff = vtpbf.fromGeojsonVt({ [tileset]: newTile })
-    return new Response(newBuff)
-  }
+    const geojsonWrapper = new GeoJSONWrapper(newTile.features, { name: 'temporalgrid', extent: 4096 });
+    return geojsonWrapper
+}
 
 const encodeVectorTile = (data, aggregateParams) => {
     const aggregated = aggregateIntArray(data, aggregateParams)
-    const encodedResponse = encodeTileResponse(aggregated, aggregateParams)
-    return new VectorTile(new Protobuf(encodedResponse))
+    const aggregatedVectorTile = getVectorTileAggregated(aggregated, aggregateParams)
+    return aggregatedVectorTile
 }
 
 const loadVectorData = (params, callback) => {
@@ -65,9 +63,15 @@ const loadVectorData = (params, callback) => {
                 console.log('loadVectorData -> err', err)
                 callback(err);
             } else if (data) {
+                const geojsonWrapper = encodeVectorTile(data, aggregationParams)
+                let pbf = vtpbf(geojsonWrapper);
+                if (pbf.byteOffset !== 0 || pbf.byteLength !== pbf.buffer.byteLength) {
+                    // Compatibility with node Buffer (https://github.com/mapbox/pbf/issues/35)
+                    pbf = new Uint8Array(pbf);
+                }
                 callback(null, {
-                    vectorTile: encodeVectorTile(data, aggregationParams),
-                    rawData: data,
+                    vectorTile: geojsonWrapper,
+                    rawData: pbf.buffer,
                     cacheControl,
                     expires
                 });
