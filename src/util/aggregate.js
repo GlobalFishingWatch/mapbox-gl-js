@@ -10,6 +10,58 @@ const GEOM_TYPES = {
 
 export const BUFFER_HEADERS = ["cell", "min", "max"];
 
+export const rawTileToIntArray = (rawTileArrayBuffer, { tileset }) => {
+    const tile = new VectorTile(new Pbf(rawTileArrayBuffer))
+    const tileLayer = tile.layers[tileset]
+  
+    let bufferSize = 0
+    const featuresProps = []
+    for (let f = 0; f < tileLayer.length; f++) {
+      const rawFeature = tileLayer.feature(f)
+      const values = rawFeature.properties
+      const cell = values.cell
+  
+      delete values.cell
+  
+      const allTimestampsRaw = Object.keys(values)
+      const allTimestamps = allTimestampsRaw.map((t) => parseInt(t))
+      const minTimestamp = Math.min(...allTimestamps)
+      const maxTimestamp = Math.max(...allTimestamps)
+  
+      const featureSize = BUFFER_HEADERS.length + (maxTimestamp - minTimestamp + 1)
+  
+      featuresProps.push({
+        values,
+        cell,
+        minTimestamp,
+        maxTimestamp,
+        featureSize,
+      })
+  
+      bufferSize += featureSize
+    }
+  
+    const buffer = new Uint16Array(bufferSize)
+    let bufferPos = 0
+    featuresProps.forEach((featureProps, i) => {
+      buffer[bufferPos + 0] = featureProps.cell
+      buffer[bufferPos + 1] = featureProps.minTimestamp
+      buffer[bufferPos + 2] = featureProps.maxTimestamp
+      let featureBufferPos = bufferPos + BUFFER_HEADERS.length
+  
+      for (let d = featureProps.minTimestamp; d <= featureProps.maxTimestamp; d++) {
+        const currentValue = featureProps.values[d.toString()]
+        buffer[featureBufferPos] = currentValue || 0
+        featureBufferPos++
+      }
+  
+      bufferPos += featureProps.featureSize
+    })
+  
+    return buffer
+  }
+  
+
 const getCellCoords = (tileBBox, cell, numCells) => {
     const col = cell % numCells.lon;
     const row = Math.floor(cell / numCells.lon);
@@ -146,6 +198,7 @@ export const aggregate = (arrayBuffer, options) => {
         }
     };
     const Int16ArrayBuffer = decodeProto(arrayBuffer);
+    console.log(Int16ArrayBuffer)
     const numCells = { lat: Int16ArrayBuffer[0], lon: Int16ArrayBuffer[1] };
     for (let i = 2; i < Int16ArrayBuffer.length; i++) {
         const value = Int16ArrayBuffer[i];

@@ -61,6 +61,7 @@ const getVectorTileAggregated = (aggregatedGeoJSON, options) => {
 
 const encodeVectorTile = (data, aggregateParams) => {
     const aggregated = aggregateIntArray(data, aggregateParams);
+    console.log(aggregated)
     const aggregatedVectorTile = getVectorTileAggregated(aggregated, aggregateParams);
     return aggregatedVectorTile;
 };
@@ -69,6 +70,7 @@ const loadVectorData = (params, callback) => {
     const url = getFinalurl(params.request.url);
     const requestParams = Object.assign({}, params.request, { url });
     const aggregationParams = getAggregationparams(params);
+    console.log(aggregationParams)
     const request = getArrayBuffer(
         requestParams,
         (err, data, cacheControl, expires) => {
