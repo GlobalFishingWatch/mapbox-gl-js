@@ -20,6 +20,7 @@
     <button id="updatesource">update source style</button>
     <button id="updatelayer">update layer style</button>
     delta: <input id="delta" type="number" value="30">
+    day: <input id="day" type="number" value="17167">(<span id="day-preview"></span>)
 </div>
 
 <script src='../dist/mapbox-gl-dev.js'></script>
@@ -29,9 +30,15 @@ const apiTilesUrl = 'https://fst-tiles-jzzp2ui3wq-uc.a.run.app/v1';
 const tileset = 'carriers_v3';
 const baseUrl = `${apiTilesUrl}/${tileset}/tile/heatmap/{z}/{x}/{y}`
 const id = 'heatmap';
+
+let delta = 30
+let day = 17167
+
 const style = {
   version: 8,
   name: 'temporal grid test',
+  glyphs:
+    'https://raw.githubusercontent.com/GlobalFishingWatch/map-gl-glyphs/master/_output/{fontstack}/{range}.pbf?raw=true',
   sources: {
     basemap_vector: {
       type: 'vector',
@@ -63,6 +70,21 @@ const style = {
         'circle-color': '#0000ff',
         'circle-radius': 2
       }
+    },
+    {
+      id: 'heatmap-values',
+      type: 'symbol',
+      source: id,
+      'source-layer': 'temporalgrid',
+      paint: {
+          'text-halo-color': 'white',
+          'text-halo-width': 2
+      },
+      layout: {
+          'text-field': '{17167}',
+          'text-font': ['Roboto Mono Light'],
+          'text-size': 10,
+        },
     }
   ]
 };
@@ -83,6 +105,10 @@ map.on('click', (e) => {
   console.log(q)
 })
 
+map.on('load', () => {
+    updateDay()
+})
+
 function getRandomColor() {
   var letters = '0123456789ABCDEF';
   var color = '#';
@@ -92,15 +118,26 @@ function getRandomColor() {
   return color;
 }
 
-let delta = 30
-
 function updateSource() {
-    let url = `${baseUrl}?start=${new Date().toISOString()}&delta=${delta}`
+    let url = `${baseUrl}?delta=${delta}`
     const s = map.getStyle()
     s.sources[id].tiles = [url]
+    console.log(s)
     map.setStyle(s)
     console.log(map.getStyle())
 }
+
+function updateDay() {
+    const s = map.getStyle()
+    console.log(s)
+    let d = new Date(parseInt(day) * 1000 * 60 * 60 * 24)
+    document.getElementById('day-preview').innerText = d
+
+    // const valueExpression = ['to-number', ['get', d]]
+    s.layers[2].layout['text-field'] = `{${day}}`
+    map.setStyle(s)
+}
+
 
 document.getElementById('updatelayer').addEventListener('click', () => {
     map.setPaintProperty('heatmap', 'circle-color', getRandomColor())
@@ -111,7 +148,15 @@ document.getElementById('updatesource').addEventListener('click', () => {
 });
 
 document.getElementById('delta').addEventListener('change', (e) => {
+    delta = e.currentTarget.value
+    console.log(delta)
     updateSource()
+})
+
+document.getElementById('day').addEventListener('change', (e) => {
+    day = e.currentTarget.value
+    console.log(day)
+    updateDay()
 })
 
 </script>
