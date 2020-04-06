@@ -23,7 +23,7 @@ const getAggregationparams = params => {
     );
     const start = isoToDay(
         url.searchParams.get("start") || "2017-01-01T00:00:00.000Z"
-    );
+        );
     const singleFrame = url.searchParams.get("singleFrame") === "true";
     return {
         start,

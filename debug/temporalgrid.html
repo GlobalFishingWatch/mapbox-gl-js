@@ -19,6 +19,7 @@
 <div class="buttons-container">
     <button id="updatesource">update source style</button>
     <button id="updatelayer">update layer style</button>
+    delta: <input id="delta" type="number" value="30">
 </div>
 
 <script src='../dist/mapbox-gl-dev.js'></script>
@@ -26,27 +27,41 @@
 <script>
 const apiTilesUrl = 'https://fst-tiles-jzzp2ui3wq-uc.a.run.app/v1';
 const tileset = 'carriers_v3';
+const baseUrl = `${apiTilesUrl}/${tileset}/tile/heatmap/{z}/{x}/{y}`
 const id = 'heatmap';
 const style = {
   version: 8,
-  name: '4winds mapbox fork',
+  name: 'temporal grid test',
   sources: {
+    basemap_vector: {
+      type: 'vector',
+      tiles: ['https://storage.googleapis.com/public-tiles/tiles-basemap/{z}/{x}/{y}.pbf'],
+      maxzoom: 8,
+    },
     [id]: {
       type: 'temporalgrid',
-      tiles: [`${apiTilesUrl}/${tileset}/tile/heatmap/{z}/{x}/{y}`],
+      tiles: [baseUrl],
     }
   },
   layers: [
     {
-      id,
       type: 'fill',
+      id: 'landmass',
+      source: 'basemap_vector',
+      'source-layer': 'landmass',
+      paint: {
+        'fill-color': '#cccccc',
+        'fill-opacity': 0.99,
+      },
+    },
+    {
+      id,
+      type: 'circle',
       source: id,
       'source-layer': 'temporalgrid',
-      layout: {
-        visibility: 'visible'
-      },
       paint: {
-        'fill-color': '#00ffc3'
+        'circle-color': '#0000ff',
+        'circle-radius': 2
       }
     }
   ]
@@ -61,6 +76,13 @@ var map = window.map = new mapboxgl.Map({
     hash: true
 });
 
+map.showTileBoundaries = true
+
+map.on('click', (e) => {
+  var q = map.queryRenderedFeatures(e.point)
+  console.log(q)
+})
+
 function getRandomColor() {
   var letters = '0123456789ABCDEF';
   var color = '#';
@@ -70,15 +92,27 @@ function getRandomColor() {
   return color;
 }
 
+let delta = 30
+
+function updateSource() {
+    let url = `${baseUrl}?start=${new Date().toISOString()}&delta=${delta}`
+    const s = map.getStyle()
+    s.sources[id].tiles = [url]
+    map.setStyle(s)
+    console.log(map.getStyle())
+}
+
 document.getElementById('updatelayer').addEventListener('click', () => {
-    map.setPaintProperty('points', 'circle-color', getRandomColor())
+    map.setPaintProperty('heatmap', 'circle-color', getRandomColor())
 });
 
 document.getElementById('updatesource').addEventListener('click', () => {
-    const sourceId = 'points'
-    const source = map.getSource(sourceId)
-    source.tiles = [ `${source.tiles[0]}?start=${Date.now()}` ]
+    updateSource()
 });
+
+document.getElementById('delta').addEventListener('change', (e) => {
+    updateSource()
+})
 
 </script>
 </body>
