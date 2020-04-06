@@ -62,9 +62,9 @@ export const rawTileToIntArray = (rawTileArrayBuffer, { tileset }) => {
   }
   
 
-const getCellCoords = (tileBBox, cell, numCells) => {
-    const col = cell % numCells.lon;
-    const row = Math.floor(cell / numCells.lon);
+const getCellCoords = (tileBBox, cell, numCols) => {
+    const col = cell % numCols;
+    const row = Math.floor(cell / numCols);
     const [minX, minY, maxX, maxY] = tileBBox;
     const width = maxX - minX;
     const height = maxY - minY;
@@ -76,12 +76,12 @@ const getCellCoords = (tileBBox, cell, numCells) => {
     };
 };
 
-const getPointGeom = (tileBBox, cell, numCells) => {
+const getPointGeom = (tileBBox, cell, numCols, numRows) => {
     const [minX, minY] = tileBBox;
-    const { col, row, width, height } = getCellCoords(tileBBox, cell, numCells);
-
-    const pointMinX = minX + (col / numCells.lon) * width;
-    const pointMinY = minY + (row / numCells.lat) * height;
+    const { col, row, width, height } = getCellCoords(tileBBox, cell, numCols);
+    
+    const pointMinX = minX + (col / numCols) * width;
+    const pointMinY = minY + (row / numRows) * height;
 
     return {
         type: "Point",
@@ -89,14 +89,14 @@ const getPointGeom = (tileBBox, cell, numCells) => {
     };
 };
 
-const getSquareGeom = (tileBBox, cell, numCells) => {
+const getSquareGeom = (tileBBox, cell, numCols, numRows) => {
     const [minX, minY] = tileBBox;
-    const { col, row, width, height } = getCellCoords(tileBBox, cell, numCells);
+    const { col, row, width, height } = getCellCoords(tileBBox, cell, numCols);
 
-    const squareMinX = minX + (col / numCells.lon) * width;
-    const squareMinY = minY + (row / numCells.lat) * height;
-    const squareMaxX = minX + ((col + 1) / numCells.lon) * width;
-    const squareMaxY = minY + ((row + 1) / numCells.lat) * height;
+    const squareMinX = minX + (col / numCols) * width;
+    const squareMinY = minY + (row / numRows) * height;
+    const squareMaxX = minX + ((col + 1) / numCols) * width;
+    const squareMaxY = minY + ((row + 1) / numRows) * height;
     return {
         type: "Polygon",
         coordinates: [
@@ -138,7 +138,8 @@ export const aggregate = (arrayBuffer, options) => {
         tileBBox,
         delta = 30,
         geomType = GEOM_TYPES.GRIDDED,
-        singleFrameStart = null
+        singleFrameStart = null,
+        x, y, z
     } = options;
     // TODO Here assuming that BLOB --> animation frame. Should it be configurable in another way?
     //      Generator could set it by default to BLOB, but it could be overridden by layer params
@@ -198,8 +199,9 @@ export const aggregate = (arrayBuffer, options) => {
         }
     };
     const Int16ArrayBuffer = decodeProto(arrayBuffer);
-    console.log(Int16ArrayBuffer)
-    const numCells = { lat: Int16ArrayBuffer[0], lon: Int16ArrayBuffer[1] };
+    const numRows = Int16ArrayBuffer[0]
+    const numCols = Int16ArrayBuffer[1]
+    const a = []
     for (let i = 2; i < Int16ArrayBuffer.length; i++) {
         const value = Int16ArrayBuffer[i];
 
@@ -207,17 +209,20 @@ export const aggregate = (arrayBuffer, options) => {
             // cell
             case 0:
                 currentFeatureCell = value;
+                a.push(value)
                 if (geomType === GEOM_TYPES.BLOB) {
                     currentFeature.geometry = getPointGeom(
                         tileBBox,
                         currentFeatureCell,
-                        numCells
+                        numCols,
+                        numRows
                     );
                 } else {
                     currentFeature.geometry = getSquareGeom(
                         tileBBox,
                         currentFeatureCell,
-                        numCells
+                        numCols,
+                        numRows
                     );
                 }
                 break;
@@ -266,6 +271,7 @@ export const aggregate = (arrayBuffer, options) => {
             )
                 .map(v => `${v}`)
                 .join(",");
+            currentFeature.properties.id = `${z}_${x}_${y}__${currentFeatureCell}`
             features.push(currentFeature);
             currentFeature = getInitialFeature();
             featureBufferPos = 0;
@@ -276,6 +282,9 @@ export const aggregate = (arrayBuffer, options) => {
         }
     }
 
+    // if (z === 2 && x === 1 && y === 1) {
+    //     console.log(z,x,y, numCols, numRows, a, Int16ArrayBuffer)
+    // }
     const geoJSON = {
         type: "FeatureCollection",
         features
@@ -295,6 +304,9 @@ const aggregateIntArray = (intArray, options) => {
     } = options;
     const tileBBox = tilebelt.tileToBBOX([x, y, z]);
     const aggregated = aggregate(intArray, {
+        x,
+        y,
+        z,
         quantizeOffset,
         tileBBox,
         delta,
