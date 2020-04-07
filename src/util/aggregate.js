@@ -29,7 +29,10 @@ const getPointGeom = (tileBBox, cell, numCols, numRows) => {
     const { col, row, width, height } = getCellCoords(tileBBox, cell, numCols);
     
     const pointMinX = minX + (col / numCols) * width;
-    const pointMinY = minY + (row / numRows) * height;
+    let pointMinY = minY + (row / numRows) * height;
+    // if (row === 0) {
+    //     pointMinY += 0.1
+    // }
 
     return {
         type: "Point",
@@ -219,7 +222,8 @@ export const aggregate = (arrayBuffer, options) => {
             )
                 .map(v => `${v}`)
                 .join(",");
-            currentFeature.properties.id = `${z}_${x}_${y}__${currentFeatureCell}`
+            // currentFeature.properties.id = `${z}_${x}_${y}__${currentFeatureCell}`
+            currentFeature.properties.id = currentFeatureCell
             features.push(currentFeature);
             currentFeature = getInitialFeature();
             featureBufferPos = 0;
