@@ -19,7 +19,7 @@
 <div class="buttons-container">
     <button id="updatesource">update source style</button>
     <button id="updatelayer">update layer style</button>
-    delta: <input id="delta" type="number" value="30">
+    delta: <input id="delta" type="number" value="300">
     day: <input id="day" type="number" value="17167">(<span id="day-preview"></span>)
 </div>
 
@@ -31,7 +31,7 @@ const tileset = 'carriers_v3';
 const baseUrl = `${apiTilesUrl}/${tileset}/tile/heatmap/{z}/{x}/{y}`
 const id = 'heatmap';
 
-let delta = 30
+let delta = 300
 let day = 17167
 
 const style = {
@@ -69,6 +69,9 @@ const style = {
       paint: {
         'circle-color': '#0000ff',
         'circle-radius': 2
+      },
+      layout: {
+          'visibility': 'visible'
       }
     },
     {
@@ -81,9 +84,11 @@ const style = {
           'text-halo-width': 2
       },
       layout: {
-          'text-field': '{17167}',
+          'text-field': '{id}',
           'text-font': ['Roboto Mono Light'],
-          'text-size': 10,
+          'text-size': 7,
+          'text-allow-overlap': true,
+          'icon-allow-overlap': true,
         },
     }
   ]
@@ -107,6 +112,7 @@ map.on('click', (e) => {
 
 map.on('load', () => {
     updateDay()
+    updateSource()
 })
 
 function getRandomColor() {
@@ -133,7 +139,6 @@ function updateDay() {
     let d = new Date(parseInt(day) * 1000 * 60 * 60 * 24)
     document.getElementById('day-preview').innerText = d
 
-    // const valueExpression = ['to-number', ['get', d]]
     s.layers[2].layout['text-field'] = `{${day}}`
     map.setStyle(s)
 }
