@@ -27,7 +27,7 @@ const getCellCoords = (tileBBox, cell, numCols) => {
 const getPointGeom = (tileBBox, cell, numCols, numRows) => {
     const [minX, minY] = tileBBox;
     const { col, row, width, height } = getCellCoords(tileBBox, cell, numCols);
-    
+
     const pointMinX = minX + (col / numCols) * width;
     let pointMinY = minY + (row / numRows) * height;
     // if (row === 0) {
@@ -89,6 +89,7 @@ export const aggregate = (arrayBuffer, options) => {
         tileBBox,
         delta = 30,
         geomType = GEOM_TYPES.GRIDDED,
+        singleFrame,
         singleFrameStart = null,
         x, y, z
     } = options;
@@ -152,15 +153,14 @@ export const aggregate = (arrayBuffer, options) => {
     const Int16ArrayBuffer = decodeProto(arrayBuffer);
     const numRows = Int16ArrayBuffer[0]
     const numCols = Int16ArrayBuffer[1]
-    const a = []
+
     for (let i = 2; i < Int16ArrayBuffer.length; i++) {
         const value = Int16ArrayBuffer[i];
-
-        switch (featureBufferPos) {
-            // cell
-            case 0:
+        if (singleFrame) {
+            // singleFrame means cell, value, cell, value in the intArray response
+            if (i % 2 === 0) {
                 currentFeatureCell = value;
-                a.push(value)
+            } else {
                 if (geomType === GEOM_TYPES.BLOB) {
                     currentFeature.geometry = getPointGeom(
                         tileBBox,
@@ -176,67 +176,95 @@ export const aggregate = (arrayBuffer, options) => {
                         numRows
                     );
                 }
-                break;
-            // minTs
-            case 1:
-                currentFeatureMinTimestamp = value;
-                head = currentFeatureMinTimestamp;
-                break;
-            // mx
-            case 2:
-                currentFeatureMaxTimestamp = value;
-                currentFeatureTimestampDelta =
-                    currentFeatureMaxTimestamp - currentFeatureMinTimestamp;
-                break;
-            // actual value
-            default:
-                // when we are looking at ts 0 and delta is 10, we are in fact looking at the aggregation of day -9
-                tail = head - delta + 1;
+                currentFeature.properties.value = value
+                currentFeature.properties.info = Object.values(
+                    currentFeature.properties
+                )
+                    .map(v => `${v}`)
+                    .join(",");
+                currentFeature.properties.id = currentFeatureCell
+                features.push(currentFeature);
+                currentFeature = getInitialFeature();
+                currentAggregatedValue = 0;
+            }
+        } else {
+            switch (featureBufferPos) {
+                // cell
+                case 0:
+                    currentFeatureCell = value;
+                    if (geomType === GEOM_TYPES.BLOB) {
+                        currentFeature.geometry = getPointGeom(
+                            tileBBox,
+                            currentFeatureCell,
+                            numCols,
+                            numRows
+                        );
+                    } else {
+                        currentFeature.geometry = getSquareGeom(
+                            tileBBox,
+                            currentFeatureCell,
+                            numCols,
+                            numRows
+                        );
+                    }
+                    break;
+                // minTs
+                case 1:
+                    currentFeatureMinTimestamp = value;
+                    head = currentFeatureMinTimestamp;
+                    break;
+                // mx
+                case 2:
+                    currentFeatureMaxTimestamp = value;
+                    currentFeatureTimestampDelta =
+                        currentFeatureMaxTimestamp - currentFeatureMinTimestamp;
+                    break;
+                // actual value
+                default:
+                    // when we are looking at ts 0 and delta is 10, we are in fact looking at the aggregation of day -9
+                    tail = head - delta + 1;
 
-                aggregating.push(value);
+                    aggregating.push(value);
 
-                let tailValue = 0;
-                if (tail > currentFeatureMinTimestamp) {
-                    tailValue = aggregating.shift();
-                }
-                currentAggregatedValue =
-                    currentAggregatedValue + value - tailValue;
+                    let tailValue = 0;
+                    if (tail > currentFeatureMinTimestamp) {
+                        tailValue = aggregating.shift();
+                    }
+                    currentAggregatedValue =
+                        currentAggregatedValue + value - tailValue;
 
-                const quantizedTail = tail - quantizeOffset;
+                    const quantizedTail = tail - quantizeOffset;
 
-                if (currentAggregatedValue > 0 && quantizedTail >= 0) {
-                    writeValueToFeature(quantizedTail);
-                }
-                head++;
-        }
-        featureBufferPos++;
+                    if (currentAggregatedValue > 0 && quantizedTail >= 0) {
+                        writeValueToFeature(quantizedTail);
+                    }
+                    head++;
+            }
+            featureBufferPos++;
 
-        const isEndOfFeature =
-            featureBufferPos - BUFFER_HEADERS.length - 1 ===
-            currentFeatureTimestampDelta;
+            const isEndOfFeature =
+                featureBufferPos - BUFFER_HEADERS.length - 1 ===
+                currentFeatureTimestampDelta;
 
-        if (isEndOfFeature) {
-            writeFinalTail();
-            currentFeature.properties.info = Object.values(
-                currentFeature.properties
-            )
-                .map(v => `${v}`)
-                .join(",");
-            // currentFeature.properties.id = `${z}_${x}_${y}__${currentFeatureCell}`
-            currentFeature.properties.id = currentFeatureCell
-            features.push(currentFeature);
-            currentFeature = getInitialFeature();
-            featureBufferPos = 0;
-            currentAggregatedValue = 0;
-            aggregating = [];
-            currentFeatureIndex++;
-            continue;
+            if (isEndOfFeature) {
+                writeFinalTail();
+                currentFeature.properties.info = Object.values(
+                    currentFeature.properties
+                )
+                    .map(v => `${v}`)
+                    .join(",");
+                // currentFeature.properties.id = `${z}_${x}_${y}__${currentFeatureCell}`
+                currentFeature.properties.id = currentFeatureCell
+                features.push(currentFeature);
+                currentFeature = getInitialFeature();
+                featureBufferPos = 0;
+                currentAggregatedValue = 0;
+                aggregating = [];
+                currentFeatureIndex++;
+                continue;
+            }
         }
     }
-
-    // if (z === 2 && x === 1 && y === 1) {
-    //     console.log(z,x,y, numCols, numRows, a, Int16ArrayBuffer)
-    // }
     const geoJSON = {
         type: "FeatureCollection",
         features
@@ -248,23 +276,20 @@ const aggregateIntArray = (intArray, options) => {
     const {
         geomType,
         delta,
-        x,
-        y,
-        z,
+        x, y, z,
         quantizeOffset,
+        singleFrame,
         singleFrameStart
     } = options;
     const tileBBox = tilebelt.tileToBBOX([x, y, z]);
     const aggregated = aggregate(intArray, {
-        x,
-        y,
-        z,
+        x, y, z,
         quantizeOffset,
         tileBBox,
         delta,
         geomType,
-        singleFrameStart,
-        // TODO make me configurable
+        singleFrame,
+        singleFrameStart,        // TODO make me configurable
         skipOddCells: false
     });
     return aggregated;

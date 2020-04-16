@@ -23,14 +23,13 @@ const getAggregationparams = params => {
     );
     const start = isoToDay(
         url.searchParams.get("start") || "2017-01-01T00:00:00.000Z"
-        );
+    );
     const singleFrame = url.searchParams.get("singleFrame") === "true";
     return {
         start,
         x, y, z,
         singleFrame,
         quantizeOffset,
-        tileset: url.searchParams.get("tileset") || "carriers_v3",
         geomType: url.searchParams.get("geomType") || "blob",
         delta: parseInt(url.searchParams.get("delta") || "10"),
         singleFrameStart: singleFrame ? start - quantizeOffset : null,
@@ -38,9 +37,10 @@ const getAggregationparams = params => {
     };
 };
 
-const getFinalurl = originalUrl => {
+const getFinalurl = (originalUrl, { singleFrame }) => {
     const url = new URL(originalUrl);
-    const baseUrl = url.origin + url.pathname + "?format=intArray";
+    const temporalAggregationParam = singleFrame ? '&temporal-aggregation=true' : ''
+    const baseUrl = url.origin + url.pathname + "?format=intArray" + temporalAggregationParam;
     const serverSideFilters = url.searchParams.get("serverSideFilters");
     const finalUrl = serverSideFilters
         ? `${baseUrl}&filters=${serverSideFilters}`
@@ -49,7 +49,7 @@ const getFinalurl = originalUrl => {
 };
 
 const getVectorTileAggregated = (aggregatedGeoJSON, options) => {
-    const { x, y, z, tileset } = options;
+    const { x, y, z } = options;
     const tileindex = geojsonVt(aggregatedGeoJSON);
     const newTile = tileindex.getTile(z, x, y);
     const geojsonWrapper = new GeoJSONWrapper(newTile.features, {
@@ -66,9 +66,9 @@ const encodeVectorTile = (data, aggregateParams) => {
 };
 
 const loadVectorData = (params, callback) => {
-    const url = getFinalurl(params.request.url);
-    const requestParams = Object.assign({}, params.request, { url });
     const aggregationParams = getAggregationparams(params);
+    const url = getFinalurl(params.request.url, aggregationParams);
+    const requestParams = Object.assign({}, params.request, { url });
     const request = getArrayBuffer(
         requestParams,
         (err, data, cacheControl, expires) => {
