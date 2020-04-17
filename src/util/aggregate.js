@@ -90,7 +90,6 @@ export const aggregate = (arrayBuffer, options) => {
         delta = 30,
         geomType = GEOM_TYPES.GRIDDED,
         singleFrame,
-        singleFrameStart = null,
         x, y, z
     } = options;
     // TODO Here assuming that BLOB --> animation frame. Should it be configurable in another way?
@@ -119,15 +118,7 @@ export const aggregate = (arrayBuffer, options) => {
         if (skipOddCells === true && currentFeatureCell % 4 !== 0) {
             return;
         }
-        if (singleFrameStart === null) {
-            currentFeature.properties[
-                quantizedTail.toString()
-            ] = currentAggregatedValue;
-        } else {
-            if (singleFrameStart === quantizedTail) {
-                currentFeature.properties.value = currentAggregatedValue;
-            }
-        }
+        currentFeature.properties[quantizedTail.toString()] = currentAggregatedValue;
     };
 
     // write values after tail > minTimestamp
@@ -279,7 +270,6 @@ const aggregateIntArray = (intArray, options) => {
         x, y, z,
         quantizeOffset,
         singleFrame,
-        singleFrameStart
     } = options;
     const tileBBox = tilebelt.tileToBBOX([x, y, z]);
     const aggregated = aggregate(intArray, {
@@ -289,7 +279,7 @@ const aggregateIntArray = (intArray, options) => {
         delta,
         geomType,
         singleFrame,
-        singleFrameStart,        // TODO make me configurable
+        // TODO make me configurable
         skipOddCells: false
     });
     return aggregated;

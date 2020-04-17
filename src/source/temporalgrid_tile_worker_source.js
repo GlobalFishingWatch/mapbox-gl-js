@@ -21,18 +21,13 @@ const getAggregationparams = params => {
     const quantizeOffset = parseInt(
         url.searchParams.get("quantizeOffset") || "0"
     );
-    const start = isoToDay(
-        url.searchParams.get("start") || "2017-01-01T00:00:00.000Z"
-    );
     const singleFrame = url.searchParams.get("singleFrame") === "true";
     return {
-        start,
         x, y, z,
         singleFrame,
         quantizeOffset,
         geomType: url.searchParams.get("geomType") || "blob",
         delta: parseInt(url.searchParams.get("delta") || "10"),
-        singleFrameStart: singleFrame ? start - quantizeOffset : null,
         serverSideFilters: url.searchParams.get("serverSideFilters")
     };
 };
