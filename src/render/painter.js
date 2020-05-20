@@ -589,6 +589,7 @@ class Painter {
      */
     isPatternMissing(image: ?CrossFaded<ResolvedImage>): boolean {
         if (!image) return false;
+        if (!image.from || !image.to) return true;
         const imagePosA = this.imageManager.getPattern(image.from.toString());
         const imagePosB = this.imageManager.getPattern(image.to.toString());
         return !imagePosA || !imagePosB;
@@ -598,7 +599,7 @@ class Painter {
         this.cache = this.cache || {};
         const key = `${name}${programConfiguration ? programConfiguration.cacheKey : ''}${this._showOverdrawInspector ? '/overdraw' : ''}`;
         if (!this.cache[key]) {
-            this.cache[key] = new Program(this.context, shaders[name], programConfiguration, programUniforms[name], this._showOverdrawInspector);
+            this.cache[key] = new Program(this.context, name, shaders[name], programConfiguration, programUniforms[name], this._showOverdrawInspector);
         }
         return this.cache[key];
     }

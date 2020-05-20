@@ -31,22 +31,23 @@ export default class TapZoomHandler {
         this._zoomOut.reset();
     }
 
-    touchstart(e: TouchEvent, points: Array<Point>) {
-        this._zoomIn.touchstart(e, points);
-        this._zoomOut.touchstart(e, points);
+    touchstart(e: TouchEvent, points: Array<Point>, mapTouches: Array<Touch>) {
+        this._zoomIn.touchstart(e, points, mapTouches);
+        this._zoomOut.touchstart(e, points, mapTouches);
     }
 
-    touchmove(e: TouchEvent, points: Array<Point>) {
-        this._zoomIn.touchmove(e, points);
-        this._zoomOut.touchmove(e, points);
+    touchmove(e: TouchEvent, points: Array<Point>, mapTouches: Array<Touch>) {
+        this._zoomIn.touchmove(e, points, mapTouches);
+        this._zoomOut.touchmove(e, points, mapTouches);
     }
 
-    touchend(e: TouchEvent) {
-        const zoomInPoint = this._zoomIn.touchend(e);
-        const zoomOutPoint = this._zoomOut.touchend(e);
+    touchend(e: TouchEvent, points: Array<Point>, mapTouches: Array<Touch>) {
+        const zoomInPoint = this._zoomIn.touchend(e, points, mapTouches);
+        const zoomOutPoint = this._zoomOut.touchend(e, points, mapTouches);
 
         if (zoomInPoint) {
             this._active = true;
+            e.preventDefault();
             setTimeout(() => this.reset(), 0);
             return {
                 cameraAnimation: (map: Map) => map.easeTo({
@@ -57,6 +58,7 @@ export default class TapZoomHandler {
             };
         } else if (zoomOutPoint) {
             this._active = true;
+            e.preventDefault();
             setTimeout(() => this.reset(), 0);
             return {
                 cameraAnimation: (map: Map) => map.easeTo({

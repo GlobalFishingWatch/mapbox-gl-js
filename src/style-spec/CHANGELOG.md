@@ -1,3 +1,16 @@
+## 13.14.0
+
+### ✨ Features and improvements
+* Add `index-of` and `slice` expressions to search arrays and strings for the first occurrence of a specified value and return a section of the original array or string ([#9450](https://github.com/mapbox/mapbox-gl-js/pull/9450)) (h/t [lbutler](https://github.com/lbutler))
+
+## 13.13.1
+
+### ✨ Features and improvements
+* Expose `expression.isExpressionFilter(..)` from the bundle. ([#9530](https://github.com/mapbox/mapbox-gl-js/pull/9530))
+
+### 🐛 Bug fixes
+* Fix a broken module import where the `style-spec` package was importing files from `mapbox-gl-js`, it's parent repo, causing downstream build systems to break. ([#9522](https://github.com/mapbox/mapbox-gl-js/pull/9522))
+
 ## 13.13.0
 
 ### ✨ Features and improvements
