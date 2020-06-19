@@ -321,7 +321,7 @@ class Camera extends Evented {
     }
 
     /**
-     * Returns the map's current bearing. The bearing is the compass direction that is \"up\"; for example, a bearing
+     * Returns the map's current bearing. The bearing is the compass direction that is "up"; for example, a bearing
      * of 90° orients the map so that east is up.
      *
      * @memberof Map#
@@ -331,7 +331,7 @@ class Camera extends Evented {
     getBearing(): number { return this.transform.bearing; }
 
     /**
-     * Sets the map's bearing (rotation). The bearing is the compass direction that is \"up\"; for example, a bearing
+     * Sets the map's bearing (rotation). The bearing is the compass direction that is "up"; for example, a bearing
      * of 90° orients the map so that east is up.
      *
      * Equivalent to `jumpTo({bearing: bearing})`.
@@ -477,7 +477,7 @@ class Camera extends Evented {
      * @memberof Map#
      * @param {LngLatBoundsLike} bounds Calculate the center for these bounds in the viewport and use
      *      the highest zoom level up to and including `Map#getMaxZoom()` that fits
-     *      in the viewport. LatLngBounds represent a box that is always axis-aligned with bearing 0.
+     *      in the viewport. LngLatBounds represent a box that is always axis-aligned with bearing 0.
      * @param options Options object
      * @param {number | PaddingOptions} [options.padding] The amount of padding in pixels to add to the given bounds.
      * @param {PointLike} [options.offset=[0, 0]] The center of the given bounds relative to the map's center, measured in pixels.
@@ -645,7 +645,7 @@ class Camera extends Evented {
      * map.fitScreenCoordinates(p0, p1, map.getBearing(), {
      *   padding: {top: 10, bottom:25, left: 15, right: 5}
      * });
-     * @see [Used by BoxZoomHandler](https://www.mapbox.com/mapbox-gl-js/api/#boxzoomhandler)
+     * @see Used by {@link BoxZoomHandler}
      */
     fitScreenCoordinates(p0: PointLike, p1: PointLike, bearing: number, options?: AnimationOptions & CameraOptions, eventData?: Object) {
         return this._fitInternal(
@@ -759,13 +759,13 @@ class Camera extends Evented {
     }
 
     /**
-     * Changes any combination of center, zoom, bearing, pitch, and padding with an animated transition
+     * Changes any combination of `center`, `zoom`, `bearing`, `pitch`, and `padding` with an animated transition
      * between old and new values. The map will retain its current values for any
      * details not specified in `options`.
      *
      * Note: The transition will happen instantly if the user has enabled
      * the `reduced motion` accesibility feature enabled in their operating system,
-     * unless 'options' includes `essential: true`.
+     * unless `options` includes `essential: true`.
      *
      * @memberof Map#
      * @param options Options describing the destination and animation of the transition.
