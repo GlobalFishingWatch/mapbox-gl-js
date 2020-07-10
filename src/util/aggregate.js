@@ -85,7 +85,7 @@ const getInitialFeature = () => ({
 
 export const aggregate = (arrayBuffer, options) => {
     const {
-        quantizeOffset,
+        quantizeOffset = 0,
         tileBBox,
         delta = 30,
         geomType = GEOM_TYPES.GRIDDED,
