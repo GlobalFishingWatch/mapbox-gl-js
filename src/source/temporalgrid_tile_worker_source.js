@@ -34,7 +34,7 @@ const getAggregationparams = params => {
 
 const getFinalurl = (originalUrl, { singleFrame }) => {
     const url = new URL(originalUrl);
-    const temporalAggregationParam = singleFrame ? '&temporal-aggregation=true' : ''
+    const temporalAggregationParam = singleFrame ? '&temporal-aggregation=true' : '&temporal-aggregation=false'
     const baseUrl = url.origin + url.pathname + "?format=intArray" + temporalAggregationParam;
     const serverSideFilters = url.searchParams.get("serverSideFilters");
     const finalUrl = serverSideFilters
