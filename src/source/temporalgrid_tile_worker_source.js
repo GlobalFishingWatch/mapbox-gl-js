@@ -22,7 +22,7 @@ const getAggregationparams = params => {
         url.searchParams.get("quantizeOffset") || "0"
     );
     const singleFrame = url.searchParams.get("singleFrame") === "true";
-    return {
+    const aggregationParams =  {
         x, y, z,
         singleFrame,
         quantizeOffset,
@@ -30,17 +30,22 @@ const getAggregationparams = params => {
         delta: parseInt(url.searchParams.get("delta") || "10"),
         serverSideFilters: url.searchParams.get("serverSideFilters")
     };
+    if (url.searchParams.get("interval")) {
+        aggregationParams.interval = url.searchParams.get("interval")
+    }
+    return aggregationParams
 };
 
-const getFinalurl = (originalUrl, { singleFrame }) => {
-    const url = new URL(originalUrl);
-    const temporalAggregationParam = singleFrame ? '&temporal-aggregation=true' : '&temporal-aggregation=false'
-    const baseUrl = url.origin + url.pathname + "?format=intArray" + temporalAggregationParam;
-    const serverSideFilters = url.searchParams.get("serverSideFilters");
-    const finalUrl = serverSideFilters
-        ? `${baseUrl}&filters=${serverSideFilters}`
-        : baseUrl;
-    return decodeURI(finalUrl.toString());
+const getFinalurl = (originalUrlString, { singleFrame }) => {
+    const originalUrl = new URL(originalUrlString);
+
+    const newUrl = new URL(originalUrl.origin + originalUrl.pathname)
+
+    newUrl.searchParams.append('format', 'intArray');
+    newUrl.searchParams.append('temporal-aggregation', singleFrame);
+    newUrl.searchParams.append('filters', encodeURIComponent(originalUrl.searchParams.get("serverSideFilters")));
+
+    return decodeURI(newUrl.toString());
 };
 
 const getVectorTileAggregated = (aggregatedGeoJSON, options) => {
