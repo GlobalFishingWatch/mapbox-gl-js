@@ -36,13 +36,16 @@ const getAggregationparams = params => {
     return aggregationParams
 };
 
-const getFinalurl = (originalUrlString, { singleFrame }) => {
+const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
     const originalUrl = new URL(originalUrlString);
 
     const newUrl = new URL(originalUrl.origin + originalUrl.pathname)
 
     newUrl.searchParams.append('format', 'intArray');
     newUrl.searchParams.append('temporal-aggregation', singleFrame);
+    if (interval) {
+        newUrl.searchParams.append('interval', interval);
+    }
     newUrl.searchParams.append('filters', encodeURIComponent(originalUrl.searchParams.get("serverSideFilters")));
 
     return decodeURI(newUrl.toString());
