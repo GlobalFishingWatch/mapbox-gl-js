@@ -10,6 +10,9 @@ const GEOM_TYPES = {
 
 export const BUFFER_HEADERS = ["cell", "min", "max"];
 
+// Values from the 4wings API in intArray form can't be floats, so they are multiplied by a factor, here we get back to the original value
+const VALUE_MULTIPLIER = 100
+
 const getCellCoords = (tileBBox, cell, numCols) => {
     const col = cell % numCols;
     const row = Math.floor(cell / numCols);
@@ -90,7 +93,8 @@ export const aggregate = (arrayBuffer, options) => {
         delta = 30,
         geomType = GEOM_TYPES.GRIDDED,
         singleFrame,
-        x, y, z
+        breaks,
+        x, y, z,
     } = options;
     // TODO Here assuming that BLOB --> animation frame. Should it be configurable in another way?
     //      Generator could set it by default to BLOB, but it could be overridden by layer params
@@ -118,7 +122,24 @@ export const aggregate = (arrayBuffer, options) => {
         if (skipOddCells === true && currentFeatureCell % 4 !== 0) {
             return;
         }
-        currentFeature.properties[quantizedTail.toString()] = currentAggregatedValue;
+
+        let realValue = currentAggregatedValue / VALUE_MULTIPLIER
+
+        if (!breaks) {
+            currentFeature.properties[quantizedTail.toString()] = realValue;
+            return
+        }
+
+        let bucketIndex = 0
+        breaks.every((stopValue, i) => {
+            bucketIndex = i
+            if (realValue <= stopValue) {
+                return false
+            }
+            return true
+        })
+        
+        currentFeature.properties[quantizedTail.toString()] = bucketIndex;
     };
 
     // write values after tail > minTimestamp
@@ -144,6 +165,8 @@ export const aggregate = (arrayBuffer, options) => {
     const Int16ArrayBuffer = decodeProto(arrayBuffer);
     const numRows = Int16ArrayBuffer[0]
     const numCols = Int16ArrayBuffer[1]
+
+    // const t = performance.now()
 
     for (let i = 2; i < Int16ArrayBuffer.length; i++) {
         const value = Int16ArrayBuffer[i];
@@ -256,6 +279,8 @@ export const aggregate = (arrayBuffer, options) => {
             }
         }
     }
+    // console.log(performance.now()- t)
+
     const geoJSON = {
         type: "FeatureCollection",
         features
@@ -270,6 +295,7 @@ const aggregateIntArray = (intArray, options) => {
         x, y, z,
         quantizeOffset,
         singleFrame,
+        breaks
     } = options;
     const tileBBox = tilebelt.tileToBBOX([x, y, z]);
     const aggregated = aggregate(intArray, {
@@ -279,6 +305,7 @@ const aggregateIntArray = (intArray, options) => {
         delta,
         geomType,
         singleFrame,
+        breaks,
         // TODO make me configurable
         skipOddCells: false
     });

@@ -33,6 +33,9 @@ const getAggregationparams = params => {
     if (url.searchParams.get("interval")) {
         aggregationParams.interval = url.searchParams.get("interval")
     }
+    if (url.searchParams.get("breaks")) {
+        aggregationParams.breaks = url.searchParams.get("breaks").split(",").map(v => parseFloat(v))
+    }
     return aggregationParams
 };
 
