@@ -6,6 +6,8 @@ import VectorTileWorkerSource from "./vector_tile_worker_source";
 import { getArrayBuffer } from "../util/ajax";
 import { extend } from "../util/util";
 import aggregateIntArray from "../util/aggregate";
+import tilebelt from "@mapbox/tilebelt";
+
 
 const isoToDate = iso => {
     return new Date(iso).getTime();
@@ -15,9 +17,10 @@ const isoToDay = iso => {
     return isoToDate(iso) / 1000 / 60 / 60 / 24;
 };
 
-const getAggregationparams = params => {
+const getAggregationParams = params => {
     const url = new URL(params.request.url);
     const { x, y, z } = params.tileID.canonical;
+
     const quantizeOffset = parseInt(
         url.searchParams.get("quantizeOffset") || "0"
     );
@@ -28,8 +31,10 @@ const getAggregationparams = params => {
         quantizeOffset,
         geomType: url.searchParams.get("geomType") || "blob",
         delta: parseInt(url.searchParams.get("delta") || "10"),
-        serverSideFilters: url.searchParams.get("serverSideFilters")
     };
+    const datasets = url.pathname.match(/\/datasets\/([\w,]*)/)[1].split(',')
+    aggregationParams.numDatasets = datasets.length
+
     if (url.searchParams.get("interval")) {
         aggregationParams.interval = url.searchParams.get("interval")
     }
@@ -42,16 +47,18 @@ const getAggregationparams = params => {
 const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
     const originalUrl = new URL(originalUrlString);
 
-    const newUrl = new URL(originalUrl.origin + originalUrl.pathname)
+    const finalUrl = new URL(originalUrl.origin + originalUrl.pathname)
 
-    newUrl.searchParams.append('format', 'intArray');
-    newUrl.searchParams.append('temporal-aggregation', singleFrame);
+    finalUrl.searchParams.append('format', 'intArray');
+    finalUrl.searchParams.append('date-range', decodeURI(originalUrl.searchParams.get("date-range")))
+    finalUrl.searchParams.append('temporal-aggregation', singleFrame);
     if (interval) {
-        newUrl.searchParams.append('interval', interval);
+        finalUrl.searchParams.append('interval', interval);
     }
-    newUrl.searchParams.append('filters', encodeURIComponent(originalUrl.searchParams.get("serverSideFilters")));
 
-    return decodeURI(newUrl.toString());
+    const finalUrlStr = `${finalUrl.toString()}&${originalUrl.searchParams.get("filters")}`
+
+    return decodeURI(finalUrlStr);
 };
 
 const getVectorTileAggregated = (aggregatedGeoJSON, options) => {
@@ -65,15 +72,33 @@ const getVectorTileAggregated = (aggregatedGeoJSON, options) => {
     return geojsonWrapper;
 };
 
+const decodeProto = data => {
+    const readField = function(tag, obj, pbf) {
+        if (tag === 1) pbf.readPackedVarint(obj.data);
+    };
+    const read = function(pbf, end) {
+        return pbf.readFields(readField, { data: [] }, end);
+    };
+    const pbfData = new Protobuf(data);
+    const intArray = read(pbfData);
+    return intArray && intArray.data;
+};
+
 const encodeVectorTile = (data, aggregateParams) => {
-    const aggregated = aggregateIntArray(data, aggregateParams);
+    const int16ArrayBuffer = decodeProto(data);
+    const {x, y, z} = aggregateParams;
+    const tileBBox = tilebelt.tileToBBOX([x, y, z]);
+    const aggregated = aggregateIntArray(int16ArrayBuffer, { ...aggregateParams, tileBBox });
     const aggregatedVectorTile = getVectorTileAggregated(aggregated, aggregateParams);
     return aggregatedVectorTile;
 };
 
 const loadVectorData = (params, callback) => {
-    const aggregationParams = getAggregationparams(params);
+    // console.log(params.request.url)
+    const aggregationParams = getAggregationParams(params);
+    // console.log(aggregationParams)
     const url = getFinalurl(params.request.url, aggregationParams);
+    // console.log(url)
     const requestParams = Object.assign({}, params.request, { url });
     const request = getArrayBuffer(
         requestParams,

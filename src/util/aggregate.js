@@ -1,7 +1,3 @@
-import { VectorTile } from "@mapbox/vector-tile";
-import tilebelt from "@mapbox/tilebelt";
-import Pbf from "pbf";
-
 const GEOM_TYPES = {
     BLOB: "blob",
     GRIDDED: "gridded",
@@ -65,18 +61,6 @@ const getSquareGeom = (tileBBox, cell, numCols, numRows) => {
     };
 };
 
-const decodeProto = data => {
-    const readField = function(tag, obj, pbf) {
-        if (tag === 1) pbf.readPackedVarint(obj.data);
-    };
-    const read = function(pbf, end) {
-        return pbf.readFields(readField, { data: [] }, end);
-    };
-    const pbfData = new Pbf(data);
-    const intArray = read(pbfData);
-    return intArray && intArray.data;
-};
-
 const getInitialFeature = () => ({
     type: "Feature",
     properties: {
@@ -86,7 +70,8 @@ const getInitialFeature = () => ({
     geometry: {}
 });
 
-export const aggregate = (arrayBuffer, options) => {
+const aggregate = (intArray, options) => {
+    console.log(intArray, options)
     const {
         quantizeOffset = 0,
         tileBBox,
@@ -95,6 +80,7 @@ export const aggregate = (arrayBuffer, options) => {
         singleFrame,
         breaks,
         x, y, z,
+        numDatasets,
     } = options;
     // TODO Here assuming that BLOB --> animation frame. Should it be configurable in another way?
     //      Generator could set it by default to BLOB, but it could be overridden by layer params
@@ -103,7 +89,8 @@ export const aggregate = (arrayBuffer, options) => {
 
     const features = [];
 
-    let aggregating = [];
+    let aggregating = Array(numDatasets).fill([]);
+    let currentAggregatedValues = Array(numDatasets).fill(0);
 
     let currentFeatureIndex = 0;
     let currentFeature = getInitialFeature();
@@ -111,8 +98,8 @@ export const aggregate = (arrayBuffer, options) => {
     let currentFeatureMinTimestamp;
     let currentFeatureMaxTimestamp;
     let currentFeatureTimestampDelta;
-    let currentAggregatedValue = 0;
     let featureBufferPos = 0;
+    let featureBufferValuesPos = 0;
     let head;
     let tail;
 
@@ -123,7 +110,12 @@ export const aggregate = (arrayBuffer, options) => {
             return;
         }
 
-        let realValue = currentAggregatedValue / VALUE_MULTIPLIER
+        // TODO
+        // if (currentAggregatedValue <= 0) {
+        //     return
+        // }
+
+        let realValue = currentAggregatedValues[0] / VALUE_MULTIPLIER
 
         if (!breaks) {
             currentFeature.properties[quantizedTail.toString()] = realValue;
@@ -144,32 +136,35 @@ export const aggregate = (arrayBuffer, options) => {
 
     // write values after tail > minTimestamp
     const writeFinalTail = () => {
-        let finalTailValue = 0;
-        for (
-            let finalTail = tail + 1;
-            finalTail <= currentFeatureMaxTimestamp;
-            finalTail++
-        ) {
-            currentAggregatedValue = currentAggregatedValue - finalTailValue;
-            if (finalTail > currentFeatureMinTimestamp) {
-                finalTailValue = aggregating.shift();
-            } else {
-                finalTailValue = 0;
-            }
-            const quantizedTail = finalTail - quantizeOffset;
-            if (quantizedTail >= 0) {
-                writeValueToFeature(quantizedTail);
+        for (let datasetIndex = 0; datasetIndex < numDatasets; datasetIndex++) {
+            let finalTailValue = 0;
+            for (
+                let finalTail = tail + 1;
+                finalTail <= currentFeatureMaxTimestamp;
+                finalTail++
+            ) {
+                currentAggregatedValues[datasetIndex] = currentAggregatedValues[datasetIndex] - finalTailValue;
+                if (finalTail > currentFeatureMinTimestamp) {
+                    finalTailValue = aggregating[datasetIndex].shift();
+                } else {
+                    finalTailValue = 0;
+                }
+                const quantizedTail = finalTail - quantizeOffset;
+                if (quantizedTail >= 0) {
+                    writeValueToFeature(quantizedTail);
+                }
             }
         }
     };
-    const Int16ArrayBuffer = decodeProto(arrayBuffer);
-    const numRows = Int16ArrayBuffer[0]
-    const numCols = Int16ArrayBuffer[1]
+    const numRows = intArray[0]
+    const numCols = intArray[1]
 
-    // const t = performance.now()
+    const t = performance.now()
 
-    for (let i = 2; i < Int16ArrayBuffer.length; i++) {
-        const value = Int16ArrayBuffer[i];
+    // console.log(x, y, z, intArray)
+
+    for (let i = 2; i < intArray.length; i++) {
+        const value = intArray[i];
         if (singleFrame) {
             // singleFrame means cell, value, cell, value in the intArray response
             if (i % 2 === 0) {
@@ -227,37 +222,61 @@ export const aggregate = (arrayBuffer, options) => {
                     currentFeatureMinTimestamp = value;
                     head = currentFeatureMinTimestamp;
                     break;
-                // mx
+                // maxTs
                 case 2:
                     currentFeatureMaxTimestamp = value;
                     currentFeatureTimestampDelta =
                         currentFeatureMaxTimestamp - currentFeatureMinTimestamp;
+                    // if (currentFeatureIndex === 0) {
+                    //     console.log('delta:',currentFeatureTimestampDelta)
+                    // }
                     break;
                 // actual value
                 default:
                     // when we are looking at ts 0 and delta is 10, we are in fact looking at the aggregation of day -9
                     tail = head - delta + 1;
 
-                    aggregating.push(value);
+                    // const featureBufferValuesPos = featureBufferPos - BUFFER_HEADERS.length - 1
+                    
+                    // TODO get dataset index
+                    const datasetIndex = featureBufferValuesPos % numDatasets
+                    // if (currentFeatureIndex === 0) {
+                    //     console.log(featureBufferValuesPos)
+                    //     console.log(datasetIndex)
+                    //     console.log(aggregating)
+                    // }
+
+                    // TODO push at correct dataset index
+                    aggregating[datasetIndex].push(value);
 
                     let tailValue = 0;
                     if (tail > currentFeatureMinTimestamp) {
-                        tailValue = aggregating.shift();
+                        // TODO get aggregating at correct dataset index
+                        tailValue = aggregating[datasetIndex].shift();
                     }
-                    currentAggregatedValue =
-                        currentAggregatedValue + value - tailValue;
+
+                    // TODO currentAggregatedValue*S*
+                    currentAggregatedValues[datasetIndex] =
+                        currentAggregatedValues[datasetIndex] + value - tailValue;
 
                     const quantizedTail = tail - quantizeOffset;
 
-                    if (currentAggregatedValue > 0 && quantizedTail >= 0) {
+                    if (quantizedTail >= 0) {
                         writeValueToFeature(quantizedTail);
                     }
-                    head++;
+
+                    // TODO *only if* last of datasets for frame
+                    if (datasetIndex === numDatasets - 1) {
+                        head++;
+                    }
+
+                    featureBufferValuesPos++
             }
             featureBufferPos++;
 
+            // TODO take num datasets into account
             const isEndOfFeature =
-                featureBufferPos - BUFFER_HEADERS.length - 1 ===
+                (featureBufferPos - BUFFER_HEADERS.length - 1) / numDatasets ===
                 currentFeatureTimestampDelta;
 
             if (isEndOfFeature) {
@@ -272,14 +291,17 @@ export const aggregate = (arrayBuffer, options) => {
                 features.push(currentFeature);
                 currentFeature = getInitialFeature();
                 featureBufferPos = 0;
-                currentAggregatedValue = 0;
-                aggregating = [];
+                featureBufferValuesPos = 0;
+
+                aggregating = Array(numDatasets).fill([]);
+                currentAggregatedValues = Array(numDatasets).fill(0);
+
                 currentFeatureIndex++;
                 continue;
             }
         }
     }
-    // console.log(performance.now()- t)
+    console.log(performance.now()- t)
 
     const geoJSON = {
         type: "FeatureCollection",
@@ -289,23 +311,8 @@ export const aggregate = (arrayBuffer, options) => {
 };
 
 const aggregateIntArray = (intArray, options) => {
-    const {
-        geomType,
-        delta,
-        x, y, z,
-        quantizeOffset,
-        singleFrame,
-        breaks
-    } = options;
-    const tileBBox = tilebelt.tileToBBOX([x, y, z]);
     const aggregated = aggregate(intArray, {
-        x, y, z,
-        quantizeOffset,
-        tileBBox,
-        delta,
-        geomType,
-        singleFrame,
-        breaks,
+        ...options,
         // TODO make me configurable
         skipOddCells: false
     });
