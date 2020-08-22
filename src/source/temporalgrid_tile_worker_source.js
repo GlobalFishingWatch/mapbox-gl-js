@@ -5,7 +5,7 @@ import GeoJSONWrapper from "./geojson_wrapper";
 import VectorTileWorkerSource from "./vector_tile_worker_source";
 import { getArrayBuffer } from "../util/ajax";
 import { extend } from "../util/util";
-import aggregateIntArray from "../util/aggregate";
+import aggregate from "../util/aggregate.mjs";
 import tilebelt from "@mapbox/tilebelt";
 
 
@@ -88,7 +88,7 @@ const encodeVectorTile = (data, aggregateParams) => {
     const int16ArrayBuffer = decodeProto(data);
     const {x, y, z} = aggregateParams;
     const tileBBox = tilebelt.tileToBBOX([x, y, z]);
-    const aggregated = aggregateIntArray(int16ArrayBuffer, { ...aggregateParams, tileBBox });
+    const aggregated = aggregate(int16ArrayBuffer, { ...aggregateParams, tileBBox });
     const aggregatedVectorTile = getVectorTileAggregated(aggregated, aggregateParams);
     return aggregatedVectorTile;
 };

@@ -71,7 +71,6 @@ const getInitialFeature = () => ({
 });
 
 const aggregate = (intArray, options) => {
-    console.log(intArray, options)
     const {
         quantizeOffset = 0,
         tileBBox,
@@ -81,11 +80,13 @@ const aggregate = (intArray, options) => {
         breaks,
         x, y, z,
         numDatasets,
+        // TODO make me configurable
+        skipOddCells = false,
     } = options;
     // TODO Here assuming that BLOB --> animation frame. Should it be configurable in another way?
     //      Generator could set it by default to BLOB, but it could be overridden by layer params
     // TODO Should be aggregation, not skipping
-    const skipOddCells = geomType === GEOM_TYPES.BLOB;
+    // const skipOddCells = geomType === GEOM_TYPES.BLOB;
 
     const features = [];
 
@@ -159,7 +160,7 @@ const aggregate = (intArray, options) => {
     const numRows = intArray[0]
     const numCols = intArray[1]
 
-    const t = performance.now()
+    // const t = performance.now()
 
     // console.log(x, y, z, intArray)
 
@@ -275,6 +276,7 @@ const aggregate = (intArray, options) => {
             featureBufferPos++;
 
             // TODO take num datasets into account
+            console.log(featureBufferPos, currentFeatureTimestampDelta)
             const isEndOfFeature =
                 (featureBufferPos - BUFFER_HEADERS.length - 1) / numDatasets ===
                 currentFeatureTimestampDelta;
@@ -290,6 +292,8 @@ const aggregate = (intArray, options) => {
                 currentFeature.properties.id = currentFeatureCell
                 features.push(currentFeature);
                 currentFeature = getInitialFeature();
+
+                currentFeatureTimestampDelta = 0
                 featureBufferPos = 0;
                 featureBufferValuesPos = 0;
 
@@ -301,7 +305,7 @@ const aggregate = (intArray, options) => {
             }
         }
     }
-    console.log(performance.now()- t)
+    // console.log(performance.now()- t)
 
     const geoJSON = {
         type: "FeatureCollection",
@@ -310,13 +314,4 @@ const aggregate = (intArray, options) => {
     return geoJSON;
 };
 
-const aggregateIntArray = (intArray, options) => {
-    const aggregated = aggregate(intArray, {
-        ...options,
-        // TODO make me configurable
-        skipOddCells: false
-    });
-    return aggregated;
-};
-
-export default aggregateIntArray;
+export default aggregate;
