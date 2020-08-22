@@ -111,7 +111,8 @@ const aggregate = (intArray, options) => {
             return;
         }
 
-        // TODO
+        // TODO - do we really need that?
+        // TODO - will need to work with currentAggregatedValues array
         // if (currentAggregatedValue <= 0) {
         //     return
         // }
@@ -123,16 +124,19 @@ const aggregate = (intArray, options) => {
             return
         }
 
-        let bucketIndex = 0
-        breaks.every((stopValue, i) => {
-            bucketIndex = i
+        let currentBucketIndex
+        for (let bucketIndex = 0; bucketIndex < breaks.length; bucketIndex++) {
+            const stopValue = breaks[bucketIndex];
             if (realValue <= stopValue) {
-                return false
+                currentBucketIndex = bucketIndex
+                break
             }
-            return true
-        })
-        
-        currentFeature.properties[quantizedTail.toString()] = bucketIndex;
+        }
+        if (currentBucketIndex === undefined) {
+            currentBucketIndex = breaks.length
+        }
+
+        currentFeature.properties[quantizedTail.toString()] = currentBucketIndex;
     };
 
     // write values after tail > minTimestamp
@@ -228,35 +232,25 @@ const aggregate = (intArray, options) => {
                     currentFeatureMaxTimestamp = value;
                     currentFeatureTimestampDelta =
                         currentFeatureMaxTimestamp - currentFeatureMinTimestamp;
-                    // if (currentFeatureIndex === 0) {
-                    //     console.log('delta:',currentFeatureTimestampDelta)
-                    // }
                     break;
                 // actual value
                 default:
                     // when we are looking at ts 0 and delta is 10, we are in fact looking at the aggregation of day -9
                     tail = head - delta + 1;
 
-                    // const featureBufferValuesPos = featureBufferPos - BUFFER_HEADERS.length - 1
-                    
-                    // TODO get dataset index
+                    // gets index of dataset, knowing that after headers values go
+                    // dataset1, dataset2, dataset1, dataset2, ...
                     const datasetIndex = featureBufferValuesPos % numDatasets
-                    // if (currentFeatureIndex === 0) {
-                    //     console.log(featureBufferValuesPos)
-                    //     console.log(datasetIndex)
-                    //     console.log(aggregating)
-                    // }
 
-                    // TODO push at correct dataset index
+                    // collect value for this dataset
                     aggregating[datasetIndex].push(value);
 
                     let tailValue = 0;
                     if (tail > currentFeatureMinTimestamp) {
-                        // TODO get aggregating at correct dataset index
                         tailValue = aggregating[datasetIndex].shift();
                     }
 
-                    // TODO currentAggregatedValue*S*
+                    // collect "working" value, ie value at head by substracting tail value
                     currentAggregatedValues[datasetIndex] =
                         currentAggregatedValues[datasetIndex] + value - tailValue;
 
@@ -266,7 +260,7 @@ const aggregate = (intArray, options) => {
                         writeValueToFeature(quantizedTail);
                     }
 
-                    // TODO *only if* last of datasets for frame
+                    // When all dataset values have been collected for this frame, we can move to next frame
                     if (datasetIndex === numDatasets - 1) {
                         head++;
                     }
@@ -275,10 +269,8 @@ const aggregate = (intArray, options) => {
             }
             featureBufferPos++;
 
-            // TODO take num datasets into account
-            console.log(featureBufferPos, currentFeatureTimestampDelta)
             const isEndOfFeature =
-                (featureBufferPos - BUFFER_HEADERS.length - 1) / numDatasets ===
+                ((featureBufferPos - BUFFER_HEADERS.length) / numDatasets) - 1 ===
                 currentFeatureTimestampDelta;
 
             if (isEndOfFeature) {
