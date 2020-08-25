@@ -80,14 +80,7 @@ const aggregate = (intArray, options) => {
         breaks,
         x, y, z,
         numDatasets,
-        // TODO make me configurable
-        skipOddCells = false,
     } = options;
-    // TODO Here assuming that BLOB --> animation frame. Should it be configurable in another way?
-    //      Generator could set it by default to BLOB, but it could be overridden by layer params
-    // TODO Should be aggregation, not skipping
-    // const skipOddCells = geomType === GEOM_TYPES.BLOB;
-
     const features = [];
 
     let aggregating = Array(numDatasets).fill([]);
@@ -105,12 +98,6 @@ const aggregate = (intArray, options) => {
     let tail;
 
     const writeValueToFeature = quantizedTail => {
-        // TODO add skipOddCells check
-        // console.log(skipOddCells, currentFeatureCell)
-        if (skipOddCells === true && currentFeatureCell % 4 !== 0) {
-            return;
-        }
-
         // TODO - do we really need that?
         // TODO - will need to work with currentAggregatedValues array
         // if (currentAggregatedValue <= 0) {
