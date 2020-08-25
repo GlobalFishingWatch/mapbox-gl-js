@@ -39,7 +39,10 @@ const getAggregationParams = params => {
         aggregationParams.interval = url.searchParams.get("interval")
     }
     if (url.searchParams.get("breaks")) {
-        aggregationParams.breaks = url.searchParams.get("breaks").split(",").map(v => parseFloat(v))
+        aggregationParams.breaks = JSON.parse(url.searchParams.get("breaks"))
+    }
+    if (url.searchParams.get("combinationMode")) {
+        aggregationParams.combinationMode = url.searchParams.get("combinationMode")
     }
     return aggregationParams
 };

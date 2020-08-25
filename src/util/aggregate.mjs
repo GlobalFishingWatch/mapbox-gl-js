@@ -70,6 +70,37 @@ const getInitialFeature = () => ({
     geometry: {}
 });
 
+// Given breaks [[0, 10, 20, 30], [0, 10, 20, 30]]
+// If first dataset selected:
+// -0.1 -> 0
+// 0 -> undefined
+// 0.1 -> 1
+// 15 -> 2
+// 25 -> 3
+// 35 -> 4
+// If second dataset selected:
+// -0.1 -> 10
+// 0 -> undefined
+// 0.1 -> 11
+// 15 -> 12
+// 25 -> 13
+// 35 -> 14
+
+const getBucketIndex = (breaks, value) => {
+    let currentBucketIndex  
+    for (let bucketIndex = 0; bucketIndex < breaks.length + 1; bucketIndex++) {
+        const stopValue = (breaks[bucketIndex] !== undefined) ? breaks[bucketIndex] : Number.POSITIVE_INFINITY;
+        if (value <= stopValue) {
+            currentBucketIndex = bucketIndex
+            break
+        }
+    }
+    if (currentBucketIndex === undefined) {
+        currentBucketIndex = breaks.length
+    }
+    return currentBucketIndex
+}
+
 const aggregate = (intArray, options) => {
     const {
         quantizeOffset = 0,
@@ -80,7 +111,16 @@ const aggregate = (intArray, options) => {
         breaks,
         x, y, z,
         numDatasets,
+        combinationMode,
     } = options;
+
+    if (breaks && breaks.length !== numDatasets && combinationMode !== 'add') {
+        throw new Error('must provide as many breaks arrays as number of datasets when using compare and bivariate modes')
+    }
+    if (breaks && breaks.length !== 1 && combinationMode === 'add') {
+        throw new Error('add combinationMode requires one and only one breaks array')
+    }
+
     const features = [];
 
     let aggregating = Array(numDatasets).fill([]);
@@ -98,32 +138,46 @@ const aggregate = (intArray, options) => {
     let tail;
 
     const writeValueToFeature = quantizedTail => {
-        // TODO - do we really need that?
-        // TODO - will need to work with currentAggregatedValues array
-        // if (currentAggregatedValue <= 0) {
-        //     return
-        // }
-
-        let realValue = currentAggregatedValues[0] / VALUE_MULTIPLIER
-
-        if (!breaks) {
-            currentFeature.properties[quantizedTail.toString()] = realValue;
-            return
-        }
-
-        let currentBucketIndex
-        for (let bucketIndex = 0; bucketIndex < breaks.length; bucketIndex++) {
-            const stopValue = breaks[bucketIndex];
-            if (realValue <= stopValue) {
-                currentBucketIndex = bucketIndex
-                break
+        const propertiesKey = quantizedTail.toString()
+        if (numDatasets === 1) {
+            const singleValue = currentAggregatedValues[0]
+            if (singleValue <= 0) {
+                return
             }
+            let realValue = singleValue / VALUE_MULTIPLIER
+            let finalValue = (breaks) ? getBucketIndex(breaks[0], realValue) : realValue
+            currentFeature.properties[propertiesKey] = finalValue;
+        } else {
+            if (currentAggregatedValues.every(v => v === 0)) {
+                return
+            }
+            const realValues = currentAggregatedValues.map(v => v / VALUE_MULTIPLIER)
+            let finalValue
+            if (combinationMode === 'add') {
+                const combinedValue = realValues.reduce((prev, current) => prev + current, 0)
+                finalValue = (breaks) ? getBucketIndex(breaks[0], combinedValue) : combinedValue
+            } else if (combinationMode === 'compare') {
+                let biggestValue = Number.NEGATIVE_INFINITY
+                let biggestAtDatasetIndex
+                realValues.forEach((value, datasetIndex) => {
+                    if (value > biggestValue) {
+                        biggestValue = value
+                        biggestAtDatasetIndex = datasetIndex
+                    }
+                })
+                if (breaks) {
+                    // offset each dataset by 10 + add actual bucket value
+                    finalValue = biggestAtDatasetIndex * 10 + getBucketIndex(breaks[biggestAtDatasetIndex], biggestValue)
+                } else {
+                    // only useful for debug
+                    finalValue = `${biggestAtDatasetIndex},${biggestValue}`
+                }
+            }
+
+            currentFeature.properties[propertiesKey] = finalValue
         }
-        if (currentBucketIndex === undefined) {
-            currentBucketIndex = breaks.length
-        }
-        
-        currentFeature.properties[quantizedTail.toString()] = currentBucketIndex;
+
+
     };
 
     // write values after tail > minTimestamp
@@ -244,6 +298,7 @@ const aggregate = (intArray, options) => {
                     const quantizedTail = tail - quantizeOffset;
 
                     if (quantizedTail >= 0) {
+                        // TODO Move below so that write is not called for every dataset?
                         writeValueToFeature(quantizedTail);
                     }
 
