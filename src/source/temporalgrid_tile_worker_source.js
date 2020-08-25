@@ -50,7 +50,9 @@ const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
     const finalUrl = new URL(originalUrl.origin + originalUrl.pathname)
 
     finalUrl.searchParams.append('format', 'intArray');
-    finalUrl.searchParams.append('date-range', decodeURI(originalUrl.searchParams.get("date-range")))
+    if (originalUrl.searchParams.get("date-range")) {
+        finalUrl.searchParams.append('date-range', decodeURI(originalUrl.searchParams.get("date-range")))
+    }
     finalUrl.searchParams.append('temporal-aggregation', singleFrame);
     if (interval) {
         finalUrl.searchParams.append('interval', interval);
