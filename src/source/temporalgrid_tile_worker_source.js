@@ -52,18 +52,25 @@ const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
 
     const finalUrl = new URL(originalUrl.origin + originalUrl.pathname)
 
+    // We want proxy active as default when api tiles auth is required
+    const proxy = originalUrl.searchParams.get("proxy") !== "false";
+    finalUrl.searchParams.append('proxy', proxy);
     finalUrl.searchParams.append('format', 'intArray');
-    if (originalUrl.searchParams.get("date-range")) {
-        finalUrl.searchParams.append('date-range', decodeURI(originalUrl.searchParams.get("date-range")))
-    }
     finalUrl.searchParams.append('temporal-aggregation', singleFrame);
+
     if (interval) {
         finalUrl.searchParams.append('interval', interval);
     }
+    const dateRange = originalUrl.searchParams.get("date-range")
+    if (dateRange) {
+        finalUrl.searchParams.append('date-range', decodeURI(dateRange))
+    }
+    const filters = originalUrl.searchParams.get("filters")
+    if (filters) {
+        finalUrl.searchParams.append('filters', decodeURI(filters))
+    }
 
-    const finalUrlStr = `${finalUrl.toString()}&${originalUrl.searchParams.get("filters")}`
-
-    return decodeURI(finalUrlStr);
+    return decodeURI(finalUrl.toString());
 };
 
 const getVectorTileAggregated = (aggregatedGeoJSON, options) => {
