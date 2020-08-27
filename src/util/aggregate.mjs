@@ -73,18 +73,18 @@ const getInitialFeature = () => ({
 // Given breaks [[0, 10, 20, 30], [-15, -5, 0, 5, 15]]:
 //                                    |   |   |   |   |
 //                                    |   |   |   |   |
-//  if first dataset selected     [   0, 10, 20, 30  ] 
-//    index returned is:            0 | 1 | 2 | 3 | 4 | 
+//  if first dataset selected     [   0, 10, 20, 30  ]
+//    index returned is:            0 | 1 | 2 | 3 | 4 |
 //                                    |   |   |   |   |
-//  if 2nd dataset selected       [ -15, -5,  0,  5, 15] 
+//  if 2nd dataset selected       [ -15, -5,  0,  5, 15]
 //    index returned is:            0 | 1 | 2 | 3 | 4 | 5
 //                                    |   |   |   |   |
 // Note: 0 is a special value, feature is entirely omitted
 //                                            |
-//                                       undefined   
+//                                       undefined
 
 const getBucketIndex = (breaks, value) => {
-    let currentBucketIndex  
+    let currentBucketIndex
     for (let bucketIndex = 0; bucketIndex < breaks.length + 1; bucketIndex++) {
         const stopValue = (breaks[bucketIndex] !== undefined) ? breaks[bucketIndex] : Number.POSITIVE_INFINITY;
         if (value <= stopValue) {
@@ -237,7 +237,7 @@ const aggregate = (intArray, options) => {
                 currentFeature.properties.id = currentFeatureCell
                 features.push(currentFeature);
                 currentFeature = getInitialFeature();
-                currentAggregatedValue = 0;
+                currentAggregatedValues = Array(numDatasets).fill(0);
             }
         } else {
             switch (featureBufferPos) {
@@ -275,8 +275,8 @@ const aggregate = (intArray, options) => {
                 default:
                     // when we are looking at ts 0 and delta is 10, we are in fact looking at the aggregation of day -9
                     tail = head - delta + 1;
-                    
-                    // gets index of dataset, knowing that after headers values go 
+
+                    // gets index of dataset, knowing that after headers values go
                     // dataset1, dataset2, dataset1, dataset2, ...
                     const datasetIndex = featureBufferValuesPos % numDatasets
 
