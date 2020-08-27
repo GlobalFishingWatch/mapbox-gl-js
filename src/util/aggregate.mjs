@@ -73,15 +73,15 @@ const getInitialFeature = () => ({
 // Given breaks [[0, 10, 20, 30], [-15, -5, 0, 5, 15]]:
 //                                    |   |   |   |   |
 //                                    |   |   |   |   |
-//  if first dataset selected     [   0, 10, 20, 30  ] 
-//    index returned is:            0 | 1 | 2 | 3 | 4 | 
+//  if first dataset selected     [   0, 10, 20, 30  ]
+//    index returned is:            0 | 1 | 2 | 3 | 4 |
 //                                    |   |   |   |   |
-//  if 2nd dataset selected       [ -15, -5,  0,  5, 15] 
+//  if 2nd dataset selected       [ -15, -5,  0,  5, 15]
 //    index returned is:            0 | 1 | 2 | 3 | 4 | 5
 //                                    |   |   |   |   |
 // Note: 0 is a special value, feature is entirely omitted
 //                                            |
-//                                       undefined   
+//                                       undefined
 
 const getBucketIndex = (breaks, value) => {
     let currentBucketIndex
@@ -236,7 +236,7 @@ const aggregate = (intArray, options) => {
                 currentFeature.properties.id = currentFeatureCell
                 features.push(currentFeature);
                 currentFeature = getInitialFeature();
-                currentAggregatedValue = 0;
+                currentAggregatedValues = Array(numDatasets).fill(0);
             }
         } else {
             switch (featureBufferPos) {
