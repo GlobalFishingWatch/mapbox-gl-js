@@ -70,21 +70,18 @@ const getInitialFeature = () => ({
     geometry: {}
 });
 
-// Given breaks [[0, 10, 20, 30], [0, 10, 20, 30]]
-// If first dataset selected:
-// -0.1 -> 0
-// 0 -> undefined
-// 0.1 -> 1
-// 15 -> 2
-// 25 -> 3
-// 35 -> 4
-// If second dataset selected:
-// -0.1 -> 10
-// 0 -> undefined
-// 0.1 -> 11
-// 15 -> 12
-// 25 -> 13
-// 35 -> 14
+// Given breaks [[0, 10, 20, 30], [-15, -5, 0, 5, 15]]:
+//                                    |   |   |   |   |
+//                                    |   |   |   |   |
+//  if first dataset selected     [   0, 10, 20, 30  ] 
+//    index returned is:            0 | 1 | 2 | 3 | 4 | 
+//                                    |   |   |   |   |
+//  if 2nd dataset selected       [ -15, -5,  0,  5, 15] 
+//    index returned is:            0 | 1 | 2 | 3 | 4 | 5
+//                                    |   |   |   |   |
+// Note: 0 is a special value, feature is entirely omitted
+//                                            |
+//                                       undefined   
 
 const getBucketIndex = (breaks, value) => {
     let currentBucketIndex
