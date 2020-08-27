@@ -1,3 +1,27 @@
+## 1.12.0
+
+### ✨ Features and improvements
+
+* Add methods for changing a vector tile source dynamically (e.g. `setTiles`, `setUrl`). [#8048](https://github.com/mapbox/mapbox-gl-js/pull/8048) (h/t [@stepankuzmin](https://github.com/stepankuzmin))
+* Add a `filter` option for GeoJSON sources to filter out features prior to processing (e.g. before clustering). [#9864](https://github.com/mapbox/mapbox-gl-js/pull/9864)
+* Vastly increase precision of `line-gradient` for long lines. [#9694](https://github.com/mapbox/mapbox-gl-js/pull/9694)
+* Improve `raster-dem` sources to properly support the `maxzoom` option and overzooming. [#9789](https://github.com/mapbox/mapbox-gl-js/pull/9789) (h/t [@brendan-ward](@brendanhttps://github.com/ward))
+
+### 🐞 Bug fixes
+
+* Fix a bug where bearing snap interfered with `easeTo` and `flyTo` animations, freezing the map. [#9884](https://github.com/mapbox/mapbox-gl-js/pull/9884) (h/t [@andycalder](https://github.com/andycalder))
+* Fix a bug where a fallback image was not used if it was added via `addImage`. [#9911](https://github.com/mapbox/mapbox-gl-js/pull/9911) (h/t [@francois2metz](https://github.com/francois2metz))
+* Fix a bug where `promoteId` option failed for fill extrusions with defined feature ids. [#9863](https://github.com/mapbox/mapbox-gl-js/pull/9863)
+
+### 🛠️ Workflow
+
+* Renamed the default development branch from `master` to `main`.
+
+## 1.11.1
+
+### 🐞 Bug fixes
+* Fix a bug that caused  `map.loaded()` to incorrectly return `false` after a click event. ([#9825](https://github.com/mapbox/mapbox-gl-js/pull/9825))
+
 ## 1.11.0
 
 ### ✨ Features and improvements
@@ -65,7 +89,7 @@ This release significantly refactors and improves gesture handling on desktop an
 * Fix a bug [#9468](https://github.com/mapbox/mapbox-gl-js/issues/9468) in which an exception would get thrown when updating symbol layer paint property using `setPaintProperty`.
 
 ## 1.9.0
-With this release, we're adding [a new changelog policy](https://github.com/mapbox/mapbox-gl-js/blob/master/CONTRIBUTING.md#changelog-conventions) to our contribution guidelines.
+With this release, we're adding [a new changelog policy](./CONTRIBUTING.md#changelog-conventions) to our contribution guidelines.
 
 This release also fixes several long-standing bugs and unintentional rendering behavior with `line-pattern`. The fixes come with a visual change to how patterns added with `line-pattern` scale. Previously, patterns that became larger than the line would be clipped, sometimes distorting the pattern, particularly on mobile and retina devices. Now the pattern will be scaled to fit under all circumstances. [#9266](https://github.com/mapbox/mapbox-gl-js/pull/9266) showcases examples of the visual differences. For more information and to provide feedback on this change, see [#9394](https://github.com/mapbox/mapbox-gl-js/pull/9394).
 
