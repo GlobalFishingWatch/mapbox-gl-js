@@ -25,10 +25,7 @@ const getAggregationParams = params => {
         url.searchParams.get("quantizeOffset") || "0"
     );
     const singleFrame = url.searchParams.get("singleFrame") === "true";
-    // We want proxy active as default when api tiles auth is required
-    const proxy = url.searchParams.get("proxy") !== "false";
     const aggregationParams =  {
-        proxy,
         x, y, z,
         singleFrame,
         quantizeOffset,
@@ -50,13 +47,17 @@ const getAggregationParams = params => {
     return aggregationParams
 };
 
-const getFinalurl = (originalUrlString, { singleFrame, interval, proxy = true }) => {
+const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
     const originalUrl = new URL(originalUrlString);
 
     const finalUrl = new URL(originalUrl.origin + originalUrl.pathname)
+
+    // We want proxy active as default when api tiles auth is required
+    const proxy = originalUrl.searchParams.get("proxy") !== "false";
     finalUrl.searchParams.append('proxy', proxy);
     finalUrl.searchParams.append('format', 'intArray');
     finalUrl.searchParams.append('temporal-aggregation', singleFrame);
+
     if (interval) {
         finalUrl.searchParams.append('interval', interval);
     }
@@ -66,7 +67,7 @@ const getFinalurl = (originalUrlString, { singleFrame, interval, proxy = true })
     }
     const filters = originalUrl.searchParams.get("filters")
     if (filters) {
-        finalUrl.searchParams.append('date-range', decodeURI(filters))
+        finalUrl.searchParams.append('filters', decodeURI(filters))
     }
 
     return decodeURI(finalUrl.toString());
