@@ -64,12 +64,14 @@ const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
     if (dateRange) {
         finalUrl.searchParams.append('date-range', decodeURI(dateRange))
     }
+
+    let finalUrlStr = finalUrl.toString()
     const filters = originalUrl.searchParams.get("filters")
     if (filters) {
-        finalUrl.searchParams.append('filters', decodeURI(filters))
+        finalUrlStr = `${finalUrlStr}&${filters}`
     }
 
-    return decodeURI(finalUrl.toString());
+    return decodeURI(finalUrlStr);
 };
 
 const getVectorTileAggregated = (aggregatedGeoJSON, options) => {
