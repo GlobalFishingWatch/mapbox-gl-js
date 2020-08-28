@@ -32,8 +32,7 @@ const getAggregationParams = params => {
         geomType: url.searchParams.get("geomType") || "blob",
         delta: parseInt(url.searchParams.get("delta") || "10"),
     };
-    const datasets = url.pathname.match(/\/datasets\/([\w,]*)/)[1].split(',')
-    aggregationParams.numDatasets = datasets.length
+    aggregationParams.numDatasets = parseInt(url.searchParams.get("numDatasets")) || 1
 
     if (url.searchParams.get("interval")) {
         aggregationParams.interval = url.searchParams.get("interval")
