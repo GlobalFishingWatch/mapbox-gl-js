@@ -2,4 +2,4 @@ version: '1'
 rules:
   - base: master
     upstream: mapbox:main
-    mergeMethod: none
+    mergeMethod: hardreset
