@@ -9,6 +9,8 @@ export const BUFFER_HEADERS = ["cell", "min", "max"];
 // Values from the 4wings API in intArray form can't be floats, so they are multiplied by a factor, here we get back to the original value
 const VALUE_MULTIPLIER = 100
 
+const getLastDigit = (num) => parseInt(num.toString().slice(-1))
+
 const getCellCoords = (tileBBox, cell, numCols) => {
     const col = cell % numCols;
     const row = Math.floor(cell / numCols);
@@ -352,8 +354,13 @@ const aggregate = (intArray, options) => {
                 )
                     .map(v => `${v}`)
                     .join(",");
-                // currentFeature.properties.id = `${z}_${x}_${y}__${currentFeatureCell}`
-                currentFeature.properties.id = currentFeatureCell
+
+                // In order for setFeatureState to work correctly, generate unique IDs across viewport-visible tiles:
+                // concatenate last x/z digits and cell increment index (goal is to get numbers as small as possible)
+                const uniqueId = parseInt([getLastDigit(x), getLastDigit(y), currentFeatureIndex].join(''))
+                currentFeature.id = uniqueId
+                currentFeature.properties.cell = currentFeatureCell
+
                 features.push(currentFeature);
                 currentFeature = getInitialFeature();
 
