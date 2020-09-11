@@ -183,7 +183,7 @@ const aggregate = (intArray, options) => {
             } else if (combinationMode === 'bivariate') {
                 if (breaks) {
                     //  y: datasetB
-                    //   ^  
+                    //   ^
                     //   |  +---+---+---+---+
                     //   |  |und| 1 | 2 | 3 |
                     //   |  +---+---+---+---+
@@ -246,9 +246,10 @@ const aggregate = (intArray, options) => {
     for (let i = 2; i < intArray.length; i++) {
         const value = intArray[i];
         if (singleFrame) {
+            const realValue = value / VALUE_MULTIPLIER
             // singleFrame means cell, value, cell, value in the intArray response
             if (i % 2 === 0) {
-                currentFeatureCell = value;
+                currentFeatureCell = realValue;
             } else {
                 if (geomType === GEOM_TYPES.BLOB) {
                     currentFeature.geometry = getPointGeom(
@@ -265,7 +266,7 @@ const aggregate = (intArray, options) => {
                         numRows
                     );
                 }
-                currentFeature.properties.value = value
+                currentFeature.properties.value = realValue
                 currentFeature.properties.info = Object.values(
                     currentFeature.properties
                 )
