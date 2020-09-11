@@ -113,7 +113,7 @@ const aggregate = (intArray, options) => {
         combinationMode,
     } = options;
 
-    if (breaks && breaks.length !== numDatasets && combinationMode !== 'add') {
+    if (breaks && breaks.length !== numDatasets && (combinationMode === 'compare' || combinationMode === 'bivariate')) {
         throw new Error('must provide as many breaks arrays as number of datasets when using compare and bivariate modes')
     }
     if (breaks && breaks.length !== 1 && combinationMode === 'add') {
@@ -153,7 +153,7 @@ const aggregate = (intArray, options) => {
                 return
             }
             let realValue = singleValue / VALUE_MULTIPLIER
-            let finalValue = (breaks) ? getBucketIndex(breaks[0], realValue) : realValue
+            let finalValue = (breaks && combinationMode !== 'literal') ? getBucketIndex(breaks[0], realValue) : realValue
             currentFeature.properties[propertiesKey] = finalValue;
         } else {
             if (currentAggregatedValues.every(v => v === 0)) {
@@ -204,6 +204,8 @@ const aggregate = (intArray, options) => {
                     // only useful for debug
                     finalValue = `${realValues[0]};${realValues[1]}`
                 }
+            } else if (combinationMode === 'literal') {
+                finalValue = `[${realValues.join(',')}]`
             }
 
             currentFeature.properties[propertiesKey] = finalValue
