@@ -246,11 +246,11 @@ const aggregate = (intArray, options) => {
     for (let i = 2; i < intArray.length; i++) {
         const value = intArray[i];
         if (singleFrame) {
-            const realValue = value / VALUE_MULTIPLIER
             // singleFrame means cell, value, cell, value in the intArray response
             if (i % 2 === 0) {
-                currentFeatureCell = realValue;
+                currentFeatureCell = value;
             } else {
+                const realValue = value / VALUE_MULTIPLIER
                 if (geomType === GEOM_TYPES.BLOB) {
                     currentFeature.geometry = getPointGeom(
                         tileBBox,
