@@ -10,6 +10,9 @@ export const BUFFER_HEADERS = ["cell", "min", "max"];
 const VALUE_MULTIPLIER = 100
 
 const getLastDigit = (num) => parseInt(num.toString().slice(-1))
+// In order for setFeatureState to work correctly, generate unique IDs across viewport-visible tiles:
+// concatenate last x/z digits and cell increment index (goal is to get numbers as small as possible)
+const generateUniqueId = (x, y, cellId) => parseInt([getLastDigit(x), getLastDigit(y), currentFeatureCell].join(''))
 
 const getCellCoords = (tileBBox, cell, numCols) => {
     const col = cell % numCols;
@@ -265,6 +268,8 @@ const aggregate = (intArray, options) => {
                         numRows
                     );
                 }
+                const uniqueId = generateUniqueId(x, y, currentFeatureCell)
+                currentFeature.id = uniqueId
                 currentFeature.properties.value = realValue
                 currentFeature.properties.info = Object.values(
                     currentFeature.properties
@@ -357,9 +362,7 @@ const aggregate = (intArray, options) => {
                     .map(v => `${v}`)
                     .join(",");
 
-                // In order for setFeatureState to work correctly, generate unique IDs across viewport-visible tiles:
-                // concatenate last x/z digits and cell increment index (goal is to get numbers as small as possible)
-                const uniqueId = parseInt([getLastDigit(x), getLastDigit(y), currentFeatureIndex].join(''))
+                const uniqueId = generateUniqueId(x, y, currentFeatureIndex)
                 currentFeature.id = uniqueId
                 currentFeature.properties.cell = currentFeatureCell
 
