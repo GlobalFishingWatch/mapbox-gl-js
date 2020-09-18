@@ -1,7 +1,7 @@
 {
   "name": "@globalfishingwatch/mapbox-gl",
   "description": "A WebGL interactive maps library",
-  "version": "1.12.0-gfw.1-beta4",
+  "version": "1.12.0-gfw.1-beta5",
   "main": "dist/mapbox-gl.js",
   "style": "dist/mapbox-gl.css",
   "license": "SEE LICENSE IN LICENSE.txt",
@@ -176,6 +176,7 @@
     "dist/style-spec/",
     "flow-typed/*.js",
     "src/",
+    "types/",
     ".flowconfig"
   ]
 }
