@@ -9,6 +9,11 @@ export const BUFFER_HEADERS = ["cell", "min", "max"];
 // Values from the 4wings API in intArray form can't be floats, so they are multiplied by a factor, here we get back to the original value
 const VALUE_MULTIPLIER = 100
 
+const getLastDigit = (num) => parseInt(num.toString().slice(-1))
+// In order for setFeatureState to work correctly, generate unique IDs across viewport-visible tiles:
+// concatenate last x/z digits and cell increment index (goal is to get numbers as small as possible)
+const generateUniqueId = (x, y, cellId) => parseInt([getLastDigit(x), getLastDigit(y), currentFeatureCell].join(''))
+
 const getCellCoords = (tileBBox, cell, numCols) => {
     const col = cell % numCols;
     const row = Math.floor(cell / numCols);
@@ -111,11 +116,20 @@ const aggregate = (intArray, options) => {
         combinationMode,
     } = options;
 
-    if (breaks && breaks.length !== numDatasets && combinationMode !== 'add') {
+    if (breaks && breaks.length !== numDatasets && (combinationMode === 'compare' || combinationMode === 'bivariate')) {
         throw new Error('must provide as many breaks arrays as number of datasets when using compare and bivariate modes')
     }
     if (breaks && breaks.length !== 1 && combinationMode === 'add') {
         throw new Error('add combinationMode requires one and only one breaks array')
+    }
+    if (combinationMode === 'bivariate') {
+        if (numDatasets !== 2) throw new Error('bivariate combinationMode requires exactly two datasets')
+        if (breaks) {
+            if (breaks.length !== 2) throw new Error('bivariate combinationMode requires exactly two breaks array')
+            if (breaks[0].length !== breaks[1].length) throw new Error('bivariate breaks arrays must have the same length')
+            // TODO This might change if we want bivariate with more or less than 16 classes
+            if (breaks[0].length !== 3 || breaks[1].length !== 3 ) throw new Error('each bivariate breaks array require exactly 3 values')
+        }
     }
 
     const features = [];
@@ -142,7 +156,7 @@ const aggregate = (intArray, options) => {
                 return
             }
             let realValue = singleValue / VALUE_MULTIPLIER
-            let finalValue = (breaks) ? getBucketIndex(breaks[0], realValue) : realValue
+            let finalValue = (breaks && combinationMode !== 'literal') ? getBucketIndex(breaks[0], realValue) : realValue
             currentFeature.properties[propertiesKey] = finalValue;
         } else {
             if (currentAggregatedValues.every(v => v === 0)) {
@@ -167,8 +181,34 @@ const aggregate = (intArray, options) => {
                     finalValue = biggestAtDatasetIndex * 10 + getBucketIndex(breaks[biggestAtDatasetIndex], biggestValue)
                 } else {
                     // only useful for debug
-                    finalValue = `${biggestAtDatasetIndex},${biggestValue}`
+                    finalValue = `${biggestAtDatasetIndex};${biggestValue}`
                 }
+            } else if (combinationMode === 'bivariate') {
+                if (breaks) {
+                    //  y: datasetB
+                    //   ^
+                    //   |  +---+---+---+---+
+                    //   |  |und| 1 | 2 | 3 |
+                    //   |  +---+---+---+---+
+                    //      | 4 | 5 | 6 | 7 |
+                    //      +---+---+---+---+
+                    //      | 8 | 9 | 10| 11|
+                    //      +---+---+---+---+
+                    //      | 12| 13| 14| 15|
+                    //      +---+---+---+---+
+                    //          ---> x: datasetA
+                    //
+                    const valueA = getBucketIndex(breaks[0], realValues[0])
+                    const valueB = getBucketIndex(breaks[1], realValues[1])
+                    const index = valueB * (breaks[0].length + 1)  + valueA
+                    finalValue = index
+
+                } else {
+                    // only useful for debug
+                    finalValue = `${realValues[0]};${realValues[1]}`
+                }
+            } else if (combinationMode === 'literal') {
+                finalValue = `[${realValues.join(',')}]`
             }
 
             currentFeature.properties[propertiesKey] = finalValue
@@ -213,6 +253,7 @@ const aggregate = (intArray, options) => {
             if (i % 2 === 0) {
                 currentFeatureCell = value;
             } else {
+                const realValue = value / VALUE_MULTIPLIER
                 if (geomType === GEOM_TYPES.BLOB) {
                     currentFeature.geometry = getPointGeom(
                         tileBBox,
@@ -228,7 +269,9 @@ const aggregate = (intArray, options) => {
                         numRows
                     );
                 }
-                currentFeature.properties.value = value
+                const uniqueId = generateUniqueId(x, y, currentFeatureCell)
+                currentFeature.id = uniqueId
+                currentFeature.properties.value = realValue
                 currentFeature.properties.info = Object.values(
                     currentFeature.properties
                 )
@@ -319,8 +362,11 @@ const aggregate = (intArray, options) => {
                 )
                     .map(v => `${v}`)
                     .join(",");
-                // currentFeature.properties.id = `${z}_${x}_${y}__${currentFeatureCell}`
-                currentFeature.properties.id = currentFeatureCell
+
+                const uniqueId = generateUniqueId(x, y, currentFeatureIndex)
+                currentFeature.id = uniqueId
+                currentFeature.properties.cell = currentFeatureCell
+
                 features.push(currentFeature);
                 currentFeature = getInitialFeature();
 
