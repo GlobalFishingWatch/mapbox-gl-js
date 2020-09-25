@@ -12,7 +12,7 @@ const VALUE_MULTIPLIER = 100
 const getLastDigit = (num) => parseInt(num.toString().slice(-1))
 // In order for setFeatureState to work correctly, generate unique IDs across viewport-visible tiles:
 // concatenate last x/z digits and cell increment index (goal is to get numbers as small as possible)
-const generateUniqueId = (x, y, cellId) => parseInt([getLastDigit(x), getLastDigit(y), currentFeatureCell].join(''))
+const generateUniqueId = (x, y, cellId) => parseInt([getLastDigit(x), getLastDigit(y), cellId].join(''))
 
 const getCellCoords = (tileBBox, cell, numCols) => {
     const col = cell % numCols;
