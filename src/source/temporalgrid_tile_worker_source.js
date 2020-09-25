@@ -66,6 +66,10 @@ const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
     }
 
     let finalUrlStr = finalUrl.toString()
+    const datasets = originalUrl.searchParams.get("datasets")
+    if (datasets) {
+        finalUrlStr = `${finalUrlStr}&${datasets}`
+    }
     const filters = originalUrl.searchParams.get("filters")
     if (filters) {
         finalUrlStr = `${finalUrlStr}&${filters}`
