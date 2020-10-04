@@ -28,23 +28,27 @@ const getCellCoords = (tileBBox, cell, numCols) => {
     };
 };
 
-const getPointGeom = (tileBBox, cell, numCols, numRows) => {
+const getPointFeature = (tileBBox, cell, numCols, numRows) => {
     const [minX, minY] = tileBBox;
     const { col, row, width, height } = getCellCoords(tileBBox, cell, numCols);
 
     const pointMinX = minX + (col / numCols) * width;
     let pointMinY = minY + (row / numRows) * height;
-    // if (row === 0) {
-    //     pointMinY += 0.1
-    // }
 
     return {
-        type: "Point",
-        coordinates: [pointMinX, pointMinY]
-    };
+        type: "Feature",
+        properties: {
+            _col: col,
+            _row: row,
+        },
+        geometry: {
+            type: "Point",
+            coordinates: [pointMinX, pointMinY]
+        }
+    }
 };
 
-const getSquareGeom = (tileBBox, cell, numCols, numRows) => {
+const getSquareFeature = (tileBBox, cell, numCols, numRows) => {
     const [minX, minY] = tileBBox;
     const { col, row, width, height } = getCellCoords(tileBBox, cell, numCols);
 
@@ -53,27 +57,31 @@ const getSquareGeom = (tileBBox, cell, numCols, numRows) => {
     const squareMaxX = minX + ((col + 1) / numCols) * width;
     const squareMaxY = minY + ((row + 1) / numRows) * height;
     return {
-        type: "Polygon",
-        coordinates: [
-            [
-                [squareMinX, squareMinY],
-                [squareMaxX, squareMinY],
-                [squareMaxX, squareMaxY],
-                [squareMinX, squareMaxY],
-                [squareMinX, squareMinY]
+        type: "Feature",
+        properties: {
+            _col: col,
+            _row: row,
+        },
+        geometry: {
+            type: "Polygon",
+            coordinates: [
+                [
+                    [squareMinX, squareMinY],
+                    [squareMaxX, squareMinY],
+                    [squareMaxX, squareMaxY],
+                    [squareMinX, squareMaxY],
+                    [squareMinX, squareMinY]
+                ]
             ]
-        ]
+        }
     };
 };
 
-const getInitialFeature = () => ({
-    type: "Feature",
-    properties: {
-        value: 0,
-        info: ""
-    },
-    geometry: {}
-});
+const getFeature = (geomType, tileBBox, cell, numCols, numRows) => {
+    return (geomType === GEOM_TYPES.BLOB)
+        ? getPointFeature(tileBBox, cell, numCols, numRows)
+        : getSquareFeature(tileBBox, cell, numCols, numRows)
+};
 
 // Given breaks [[0, 10, 20, 30], [-15, -5, 0, 5, 15]]:
 //                                    |   |   |   |   |
@@ -138,7 +146,7 @@ const aggregate = (intArray, options) => {
     let currentAggregatedValues = Array(numDatasets).fill(0);
 
     let currentFeatureIndex = 0;
-    let currentFeature = getInitialFeature();
+    let currentFeature;
     let currentFeatureCell;
     let currentFeatureMinTimestamp;
     let currentFeatureMaxTimestamp;
@@ -254,32 +262,18 @@ const aggregate = (intArray, options) => {
                 currentFeatureCell = value;
             } else {
                 const realValue = value / VALUE_MULTIPLIER
-                if (geomType === GEOM_TYPES.BLOB) {
-                    currentFeature.geometry = getPointGeom(
-                        tileBBox,
-                        currentFeatureCell,
-                        numCols,
-                        numRows
-                    );
-                } else {
-                    currentFeature.geometry = getSquareGeom(
-                        tileBBox,
-                        currentFeatureCell,
-                        numCols,
-                        numRows
-                    );
-                }
+                currentFeature = getFeature(
+                    geomType,
+                    tileBBox,
+                    currentFeatureCell,
+                    numCols,
+                    numRows
+                )
                 const uniqueId = generateUniqueId(x, y, currentFeatureCell)
                 currentFeature.id = uniqueId
                 currentFeature.properties.value = realValue
-                currentFeature.properties.info = Object.values(
-                    currentFeature.properties
-                )
-                    .map(v => `${v}`)
-                    .join(",");
-                currentFeature.properties.id = currentFeatureCell
+                currentFeature.properties._cell = currentFeatureCell
                 features.push(currentFeature);
-                currentFeature = getInitialFeature();
                 currentAggregatedValues = Array(numDatasets).fill(0);
             }
         } else {
@@ -287,21 +281,13 @@ const aggregate = (intArray, options) => {
                 // cell
                 case 0:
                     currentFeatureCell = value;
-                    if (geomType === GEOM_TYPES.BLOB) {
-                        currentFeature.geometry = getPointGeom(
-                            tileBBox,
-                            currentFeatureCell,
-                            numCols,
-                            numRows
-                        );
-                    } else {
-                        currentFeature.geometry = getSquareGeom(
-                            tileBBox,
-                            currentFeatureCell,
-                            numCols,
-                            numRows
-                        );
-                    }
+                    currentFeature = getFeature(
+                        geomType,
+                        tileBBox,
+                        currentFeatureCell,
+                        numCols,
+                        numRows
+                    )
                     break;
                 // minTs
                 case 1:
@@ -357,18 +343,11 @@ const aggregate = (intArray, options) => {
 
             if (isEndOfFeature) {
                 writeFinalTail();
-                currentFeature.properties.info = Object.values(
-                    currentFeature.properties
-                )
-                    .map(v => `${v}`)
-                    .join(",");
-
                 const uniqueId = generateUniqueId(x, y, currentFeatureIndex)
                 currentFeature.id = uniqueId
-                currentFeature.properties.cell = currentFeatureCell
+                currentFeature.properties._cell = currentFeatureCell
 
                 features.push(currentFeature);
-                currentFeature = getInitialFeature();
 
                 currentFeatureTimestampDelta = 0
                 featureBufferPos = 0;
