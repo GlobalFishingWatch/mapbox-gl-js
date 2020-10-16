@@ -29,7 +29,7 @@ const getAggregationParams = params => {
         x, y, z,
         singleFrame,
         quantizeOffset,
-        geomType: url.searchParams.get("geomType") || "blob",
+        geomType: url.searchParams.get("geomType") || "point",
         delta: parseInt(url.searchParams.get("delta") || "10"),
     };
     aggregationParams.numDatasets = parseInt(url.searchParams.get("numDatasets")) || 1
