@@ -1,9 +1,3 @@
-const GEOM_TYPES = {
-    BLOB: "blob",
-    GRIDDED: "gridded",
-    EXTRUDED: "extruded"
-};
-
 export const BUFFER_HEADERS = ["cell", "min", "max"];
 
 // Values from the 4wings API in intArray form can't be floats, so they are multiplied by a factor, here we get back to the original value
@@ -48,7 +42,7 @@ const getPointFeature = (tileBBox, cell, numCols, numRows) => {
     }
 };
 
-const getSquareFeature = (tileBBox, cell, numCols, numRows) => {
+const getRectangleFeature = (tileBBox, cell, numCols, numRows) => {
     const [minX, minY] = tileBBox;
     const { col, row, width, height } = getCellCoords(tileBBox, cell, numCols);
 
@@ -78,9 +72,9 @@ const getSquareFeature = (tileBBox, cell, numCols, numRows) => {
 };
 
 const getFeature = (geomType, tileBBox, cell, numCols, numRows) => {
-    return (geomType === GEOM_TYPES.BLOB)
+    return (geomType === 'point')
         ? getPointFeature(tileBBox, cell, numCols, numRows)
-        : getSquareFeature(tileBBox, cell, numCols, numRows)
+        : getRectangleFeature(tileBBox, cell, numCols, numRows)
 };
 
 // Given breaks [[0, 10, 20, 30], [-15, -5, 0, 5, 15]]:
@@ -116,7 +110,7 @@ const aggregate = (intArray, options) => {
         quantizeOffset = 0,
         tileBBox,
         delta = 30,
-        geomType = GEOM_TYPES.GRIDDED,
+        geomType = 'rectangle',
         singleFrame,
         breaks,
         x, y, z,
@@ -215,6 +209,14 @@ const aggregate = (intArray, options) => {
                     // only useful for debug
                     finalValue = `${realValues[0]};${realValues[1]}`
                 }
+            } else if (combinationMode === 'cumulative') {
+                const cumulativeValues = []
+                realValues.reduce((prev, current) => {
+                    const cumulated = prev+Math.round(current)
+                    cumulativeValues.push(cumulated);
+                    return cumulated
+                }, 0)
+                finalValue = cumulativeValues.map(v => v.toString().padStart(4, '0')).join('')
             } else if (combinationMode === 'literal') {
                 finalValue = `[${realValues.join(',')}]`
             }
