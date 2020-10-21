@@ -302,7 +302,7 @@ const aggregate = (intArray, options) => {
 
                     const quantizedTail = tail - quantizeOffset;
 
-                    if (quantizedTail >= 0) {
+                    if (quantizedTail >= 0 && datasetIndex === numDatasets - 1) {
                         // TODO Move below so that write is not called for every dataset?
                         writeValueToFeature(quantizedTail);
                     }
