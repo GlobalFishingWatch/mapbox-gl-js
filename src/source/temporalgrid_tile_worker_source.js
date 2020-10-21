@@ -105,13 +105,17 @@ const encodeVectorTile = (data, aggregateParams) => {
     const int16ArrayBuffer = decodeProto(data);
     const {x, y, z} = aggregateParams;
     const tileBBox = tilebelt.tileToBBOX([x, y, z]);
+    let t = performance.now()
+    // console.log(int16ArrayBuffer.length, JSON.stringify({ ...aggregateParams, tileBBox }))
     const aggregated = aggregate(int16ArrayBuffer, { ...aggregateParams, tileBBox });
+    console.log('agg',performance.now() - t)
+    t = performance.now()
     const aggregatedVectorTile = getVectorTileAggregated(aggregated, aggregateParams);
+    // console.log('geojson->vt',performance.now() - t)
     return aggregatedVectorTile;
 };
 
 const loadVectorData = (params, callback) => {
-    // console.log(params.request.url)
     const aggregationParams = getAggregationParams(params);
     // console.log(aggregationParams)
     const url = getFinalurl(params.request.url, aggregationParams);
@@ -123,8 +127,15 @@ const loadVectorData = (params, callback) => {
             if (err) {
                 callback(err);
             } else if (data) {
+                const xyz = params.request.url.match(/heatmap\/\d\/\d\/\d/)
+                // if (xyz) console.log(xyz[0])
+                // const isInteraction = params.source.match('interaction')
+                // console.log(params, 'isInteraction', isInteraction !== undefined)
                 const geojsonWrapper = encodeVectorTile(data, aggregationParams);
+                let t = performance.now()
                 let pbf = vtpbf(geojsonWrapper);
+                // console.log('vt->pbf',performance.now() - t)
+                
                 if (
                     pbf.byteOffset !== 0 ||
                     pbf.byteLength !== pbf.buffer.byteLength
