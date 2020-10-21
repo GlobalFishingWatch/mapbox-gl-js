@@ -227,28 +227,6 @@ const aggregate = (intArray, options) => {
 
     };
 
-    // write values after tail > minTimestamp
-    const writeFinalTail = () => {
-        for (let datasetIndex = 0; datasetIndex < numDatasets; datasetIndex++) {
-            let finalTailValue = 0;
-            for (
-                let finalTail = tail + 1;
-                finalTail <= currentFeatureMaxTimestamp;
-                finalTail++
-            ) {
-                currentAggregatedValues[datasetIndex] = currentAggregatedValues[datasetIndex] - finalTailValue;
-                if (finalTail > currentFeatureMinTimestamp) {
-                    finalTailValue = aggregating[datasetIndex].shift();
-                } else {
-                    finalTailValue = 0;
-                }
-                const quantizedTail = finalTail - quantizeOffset;
-                if (quantizedTail >= 0) {
-                    writeValueToFeature(quantizedTail);
-                }
-            }
-        }
-    };
     const numRows = intArray[0]
     const numCols = intArray[1]
 
@@ -344,7 +322,6 @@ const aggregate = (intArray, options) => {
                 currentFeatureTimestampDelta;
 
             if (isEndOfFeature) {
-                writeFinalTail();
                 const uniqueId = generateUniqueId(x, y, currentFeatureIndex)
                 currentFeature.id = uniqueId
                 currentFeature.properties._cell = currentFeatureCell
