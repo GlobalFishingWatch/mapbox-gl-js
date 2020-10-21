@@ -1,5 +1,7 @@
 import aggregate from "./aggregate.mjs";
 import tap from 'tap'
+import bigtile from './test/bigtile.mjs'
+import { performance } from 'perf_hooks';
 
 const BASE_CONFIG = {
   breaks: [[0, 1, 5, 10, 15, 30]],
@@ -70,3 +72,14 @@ tap.equal(getAt([1, 1, 0,15340,15341,9999,0,0,0], { numDatasets: 2, combinationM
 tap.equal(getAt([1, 1, 0,15340,15341,0,9999,0,0], { numDatasets: 2, combinationMode: 'bivariate', breaks: [[0, 1, 5], [0, 1, 5]] }, 0, 0), 12)
 tap.equal(getAt([1, 1, 0,15340,15341,9999,9999,0,0], { numDatasets: 2, combinationMode: 'bivariate', breaks: [[0, 1, 5], [0, 1, 5]] }, 0, 0), 15)
 tap.equal(getAt([1, 1, 0,15340,15341,42,42,0,0], { numDatasets: 2, combinationMode: 'bivariate', breaks: [[0, 1, 5], [0, 1, 5]] }, 0, 0), 5)
+
+let sum = 0
+for (var i = 0; i< 10; i++) {
+  const t = performance.now()
+  const geojson = aggregate(bigtile, {"x":7,"y":5,"z":4,"singleFrame":false,"quantizeOffset":15340,"geomType":"rectangle","delta":31,"numDatasets":2,"interval":"day","breaks":[[0,31,186,310,930],[0,31,186,310,930]],"combinationMode":"compare","tileBBox":[-22.5,40.97989806962013,0,55.77657301866769]})
+  const delta = performance.now() - t
+  console.log(delta)
+  sum += delta
+}
+
+console.log('avg:', sum / 10)
