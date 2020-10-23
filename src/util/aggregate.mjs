@@ -159,11 +159,6 @@ const getBivariateValue = (realValues, breaks) => {
     }
 }
 
-const getLiteralValues = (realValues, numDatasets) => {
-    if (numDatasets === 1) return realValues
-    return `[${realValues.join(',')}]`
-}
-
 const getCumulativeValue = (realValuesSum, cumulativeValuesPaddedStrings) => {
     if (realValuesSum === 0) return undefined
     return cumulativeValuesPaddedStrings.join('')
@@ -221,6 +216,7 @@ const aggregate = (intArray, options) => {
     let datasetsHighestRealValue = Number.NEGATIVE_INFINITY
     let datasetsHighestRealValueIndex
     let realValuesSum = 0
+    let literalValuesStr = '['
     let cumulativeValuesPaddedStrings = []
 
     const numRows = intArray[0]
@@ -290,7 +286,7 @@ const aggregate = (intArray, options) => {
                     const datasetIndex = featureBufferValuesPos % numDatasets
 
                     // Get real value
-                    const realValue = Math.round(value / VALUE_MULTIPLIER)
+                    const realValue = value / VALUE_MULTIPLIER
 
                     // collect value for this dataset
                     aggregating[datasetIndex].push(realValue);
@@ -314,15 +310,27 @@ const aggregate = (intArray, options) => {
                     if (combinationMode === 'add' || combinationMode === 'cumulative') {
                         realValuesSum += realValueAtFrameForDataset
                     }
-                     if (combinationMode === 'cumulative') {
+                    if (combinationMode === 'cumulative') {
                         const cumulativeValuePaddedString = Math.round(realValuesSum).toString().padStart(4, '0')
                         cumulativeValuesPaddedStrings.push(cumulativeValuePaddedString)
+                    }
+                    if (combinationMode === 'literal' || interactive) {
+                        // literalValuesStr += Math.floor(realValueAtFrameForDataset * 100) / 100
+                        // Just rounding is faster - revise if decimals are needed
+                        literalValuesStr += Math.round(realValueAtFrameForDataset)
+                        if (datasetIndex < numDatasets - 1) {
+                            literalValuesStr += ','
+                        }
                     }
 
                     const quantizedTail = tail - quantizeOffset;
 
                     if (quantizedTail >= 0 && datasetIndex === numDatasets - 1) {
                         let finalValue
+
+                        if (combinationMode === 'literal' || interactive) {
+                            literalValuesStr += ']'
+                        }
                         // TODO add 'single' mode
                         if (combinationMode === 'compare') {
                             finalValue = getCompareValue(datasetsHighestRealValue, datasetsHighestRealValueIndex, breaks)
@@ -334,14 +342,14 @@ const aggregate = (intArray, options) => {
                             finalValue = getBivariateValue(currentAggregatedValues, breaks)
                         }
                         else if (combinationMode === 'literal') {
-                            finalValue = getLiteralValues(currentAggregatedValues, numDatasets)
+                            finalValue = literalValuesStr
                         }
                         else if (combinationMode === 'cumulative') {
                             finalValue = getCumulativeValue(realValuesSum, cumulativeValuesPaddedStrings)
                         }
                         writeValueToFeature(quantizedTail, finalValue, currentFeature)
                         if (interactive) {
-                            const interactiveValue = getLiteralValues(currentAggregatedValues, numDatasets)
+                            const interactiveValue = literalValuesStr
                             writeValueToFeature(quantizedTail, interactiveValue, currentFeatureInteractive)
                         }
                     }
@@ -354,6 +362,7 @@ const aggregate = (intArray, options) => {
                         datasetsHighestRealValue = Number.NEGATIVE_INFINITY
                         realValuesSum = 0
                         cumulativeValuesPaddedStrings = []
+                        literalValuesStr = '['
                     }
 
                     featureBufferValuesPos++
