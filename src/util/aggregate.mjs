@@ -290,7 +290,7 @@ const aggregate = (intArray, options) => {
                     const datasetIndex = featureBufferValuesPos % numDatasets
 
                     // Get real value
-                    const realValue = value / VALUE_MULTIPLIER
+                    const realValue = Math.round(value / VALUE_MULTIPLIER)
 
                     // collect value for this dataset
                     aggregating[datasetIndex].push(realValue);
