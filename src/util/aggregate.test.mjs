@@ -18,7 +18,7 @@ const BASE_CONFIG = {
   z: 4
 }
 
-const aggregateWith = (intArray, configOverrides) => aggregate(intArray, { ...BASE_CONFIG, ...configOverrides })
+const aggregateWith = (intArray, configOverrides) => aggregate(intArray, { ...BASE_CONFIG, ...configOverrides }).main
 const getAt = (intArray, configOverrides, featureIndex, timeIndex, expect) => {
   const agg = aggregateWith(
     intArray,
@@ -28,6 +28,7 @@ const getAt = (intArray, configOverrides, featureIndex, timeIndex, expect) => {
   return at
 }
 
+// aggregation per se
 //                                   0         5          10        15
 const aggTest = [1,1, 0,15340,15355,4200,200,100,0,0,1200,0,0,0,0,300,200,100,0,0,12300]
 tap.equal(getAt(aggTest, { breaks: undefined, delta: 1 }, 0, 0), 42)
@@ -46,9 +47,9 @@ tap.equal(getAt([1,1, 0,15340,15341,0,0], {}, 0, 0), undefined)
 tap.equal(getAt([1,1, 0,15340,15341,42,0], { breaks: undefined }, 0, 0), .42)
 
 tap.equal(getAt([1,1, 0,15340,15341,42,43,0,0], { numDatasets: 2, breaks: undefined }, 0, 0), .85)
-tap.equal(getAt([1,2, 0,15340,15341,42,43,0,0, 1,15340,15341,52,53,0,0], { numDatasets: 2, breaks: undefined }, 1, 0), 1.05)
+tap.equal(getAt([1,2, 0,15340,15341,42,43,0,0, 1,15340,15341,52,53,0,0], { numDatasets: 2, breaks: undefined }, 1, 0), 1.05) // test with 2 features
 tap.equal(getAt([1,1, 0,15340,15341,42,43,0,0], { numDatasets: 2, combinationMode: 'compare', breaks: undefined }, 0, 0), '1;0.43')
-tap.equal(getAt([1,1, 0,15340,15341,52,53,0,0], { numDatasets: 2, combinationMode: 'add' }, 0, 0), 2)
+tap.equal(getAt([1,1, 0,15340,15341,52,53,0,0], { numDatasets: 2 }, 0, 0), 2)
 tap.equal(getAt([1,1, 0,15340,15341,253,52,0,0], { numDatasets: 2, combinationMode: 'compare', breaks: [[0, 1, 2, 10, 15, 30], [0, 1, 2, 10, 15, 30]] }, 0, 0), 3)
 tap.equal(getAt([1,1, 0,15340,15341,52,253,0,0], { numDatasets: 2, combinationMode: 'compare', breaks: [[0, 1, 2, 10, 15, 30], [0, 1, 2, 10, 15, 30]] }, 0, 0), 10 + 3)
 
@@ -79,6 +80,8 @@ tap.equal(getAt([1, 1, 0,15340,15341,42,42,0,0], { numDatasets: 2, combinationMo
 tap.equal(getAt([1,1, 0,15340,15341,100,200,300,0,0,0], { numDatasets: 3, combinationMode: 'cumulative'  }, 0, 0), '000100030006')
 tap.equal(getAt([1,1, 0,15340,15341,100,200,300,400,500,600], { numDatasets: 3, combinationMode: 'cumulative', delta: 2  }, 0, 0), '000500120021')
 
+
+// perf test
 let sum = 0
 for (var i = 0; i< 20; i++) {
   const t = performance.now()
@@ -96,8 +99,11 @@ for (var i = 0; i< 20; i++) {
       "breaks":[[0,31,186,310,930],[0,31,186,310,930]],
       // "breaks":[[0,31,186],[0,31,186]],
       // "breaks":[[0,31,186,310,930]],
+      // "combinationMode":"compare",
       "combinationMode":"compare",
-      "tileBBox":[-22.5,40.97989806962013,0,55.77657301866769]})
+      "tileBBox":[-22.5,40.97989806962013,0,55.77657301866769],
+      interactive: true
+  })
   const delta = performance.now() - t
   console.log(delta)
   sum += delta

@@ -71,11 +71,22 @@ const getRectangleFeature = (tileBBox, cell, numCols, numRows) => {
     };
 };
 
-const getFeature = (geomType, tileBBox, cell, numCols, numRows) => {
-    return (geomType === 'point')
+const getFeature = ({ geomType, tileBBox, cell, numCols, numRows, id }) => {
+    const feature = (geomType === 'point')
         ? getPointFeature(tileBBox, cell, numCols, numRows)
         : getRectangleFeature(tileBBox, cell, numCols, numRows)
+
+    feature.id = id
+    feature.properties._cell = cell
+
+    return feature
 };
+
+const writeValueToFeature = (quantizedTail, valueToWrite, feature) => {
+    const propertiesKey = quantizedTail.toString()
+    feature.properties[propertiesKey] = valueToWrite
+}
+
 
 // Given breaks [[0, 10, 20, 30], [-15, -5, 0, 5, 15]]:
 //                                    |   |   |   |   |
@@ -103,6 +114,7 @@ const getBucketIndex = (breaks, value) => {
     }
     return currentBucketIndex
 }
+
 
 const getAddValue = (realValuesSum, breaks) => {
     if (realValuesSum === 0) return undefined
@@ -165,6 +177,7 @@ const aggregate = (intArray, options) => {
         delta = 30,
         geomType = 'rectangle',
         singleFrame,
+        interactive,
         breaks,
         x, y, z,
         numDatasets,
@@ -188,12 +201,14 @@ const aggregate = (intArray, options) => {
     }
 
     const features = [];
+    const featuresInteractive = [];
 
     let aggregating = Array(numDatasets).fill([]);
     let currentAggregatedValues = Array(numDatasets).fill(0);
 
     let currentFeatureIndex = 0;
     let currentFeature;
+    let currentFeatureInteractive;
     let currentFeatureCell;
     let currentFeatureMinTimestamp;
     let currentFeatureMaxTimestamp;
@@ -208,11 +223,6 @@ const aggregate = (intArray, options) => {
     let realValuesSum = 0
     let cumulativeValuesPaddedStrings = []
 
-    const writeValueToFeature = (quantizedTail, valueToWrite) => {
-        const propertiesKey = quantizedTail.toString()
-        currentFeature.properties[propertiesKey] = valueToWrite
-    }
-
     const numRows = intArray[0]
     const numCols = intArray[1]
 
@@ -226,19 +236,18 @@ const aggregate = (intArray, options) => {
             if (i % 2 === 0) {
                 currentFeatureCell = value;
             } else {
-                const realValue = value / VALUE_MULTIPLIER
-                currentFeature = getFeature(
+                const uniqueId = generateUniqueId(x, y, currentFeatureCell)
+                const featureParams = {
                     geomType,
                     tileBBox,
-                    currentFeatureCell,
+                    cell: currentFeatureCell,
                     numCols,
-                    numRows
-                )
-                const uniqueId = generateUniqueId(x, y, currentFeatureCell)
-                currentFeature.id = uniqueId
-                currentFeature.properties.value = realValue
-                currentFeature.properties._cell = currentFeatureCell
+                    numRows,
+                    id: uniqueId,
+                }
+                currentFeature = getFeature(featureParams)
                 features.push(currentFeature);
+
                 currentAggregatedValues = Array(numDatasets).fill(0);
             }
         } else {
@@ -246,13 +255,19 @@ const aggregate = (intArray, options) => {
                 // cell
                 case 0:
                     currentFeatureCell = value;
-                    currentFeature = getFeature(
+                    const uniqueId = generateUniqueId(x, y, currentFeatureCell)
+                    const featureParams = {
                         geomType,
                         tileBBox,
-                        currentFeatureCell,
+                        cell: currentFeatureCell,
                         numCols,
-                        numRows
-                    )
+                        numRows,
+                        id: uniqueId,
+                    }
+                    currentFeature = getFeature(featureParams)
+                    if (interactive) {
+                        currentFeatureInteractive = getFeature(featureParams)
+                    }
                     break;
                 // minTs
                 case 1:
@@ -324,7 +339,11 @@ const aggregate = (intArray, options) => {
                         else if (combinationMode === 'cumulative') {
                             finalValue = getCumulativeValue(realValuesSum, cumulativeValuesPaddedStrings)
                         }
-                        writeValueToFeature(quantizedTail, finalValue);
+                        writeValueToFeature(quantizedTail, finalValue, currentFeature)
+                        if (interactive) {
+                            const interactiveValue = getLiteralValues(currentAggregatedValues, numDatasets)
+                            writeValueToFeature(quantizedTail, interactiveValue, currentFeatureInteractive)
+                        }
                     }
 
                     if (datasetIndex === numDatasets - 1) {
@@ -346,11 +365,10 @@ const aggregate = (intArray, options) => {
                 currentFeatureTimestampDelta;
 
             if (isEndOfFeature) {
-                const uniqueId = generateUniqueId(x, y, currentFeatureIndex)
-                currentFeature.id = uniqueId
-                currentFeature.properties._cell = currentFeatureCell
-
                 features.push(currentFeature);
+                if (interactive) {
+                    featuresInteractive.push(currentFeatureInteractive)
+                }
 
                 currentFeatureTimestampDelta = 0
                 featureBufferPos = 0;
@@ -369,12 +387,19 @@ const aggregate = (intArray, options) => {
         }
     }
     // console.log(performance.now()- t)
-
-    const geoJSON = {
-        type: "FeatureCollection",
-        features
-    };
-    return geoJSON;
+    const geoJSONs = {
+        main: {
+            type: "FeatureCollection",
+            features
+        }
+    }
+    if (interactive) {
+        geoJSONs.interactive = {
+            type: "FeatureCollection",
+            features: featuresInteractive
+        }
+    }
+    return geoJSONs;
 };
 
 export default aggregate;
