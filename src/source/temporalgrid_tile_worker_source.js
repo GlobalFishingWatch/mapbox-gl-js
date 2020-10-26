@@ -113,11 +113,9 @@ const getTile = (data, options) => {
         const interactiveTile = geoJSONtoVectorTile(aggregated.interactive, options)
         sourceLayers.temporalgrid_interactive = interactiveTile
     }
-    console.log(sourceLayers)
     const geojsonWrapper = new MultiSourceLayerGeoJSONWrapper(sourceLayers, {
         extent: 4096
     });
-    console.log('s')
 
     let pbf = vtpbf.fromGeojsonVt(sourceLayers)
 

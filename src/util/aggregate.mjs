@@ -317,7 +317,8 @@ const aggregate = (intArray, options) => {
                     if (combinationMode === 'literal' || interactive) {
                         // literalValuesStr += Math.floor(realValueAtFrameForDataset * 100) / 100
                         // Just rounding is faster - revise if decimals are needed
-                        literalValuesStr += Math.round(realValueAtFrameForDataset)
+                        // Use ceil to avoid values being 'mute' when very close to zero 
+                        literalValuesStr += Math.ceil(realValueAtFrameForDataset)
                         if (datasetIndex < numDatasets - 1) {
                             literalValuesStr += ','
                         }
