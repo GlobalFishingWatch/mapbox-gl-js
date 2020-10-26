@@ -1,7 +1,7 @@
 import Protobuf from "pbf";
 import vtpbf from "vt-pbf";
 import geojsonVt from "geojson-vt";
-import GeoJSONWrapper from "./geojson_wrapper";
+import MultiSourceLayerGeoJSONWrapper from "./multi_source_geojson_wrapper";
 import VectorTileWorkerSource from "./vector_tile_worker_source";
 import { getArrayBuffer } from "../util/ajax";
 import { extend } from "../util/util";
@@ -25,9 +25,11 @@ const getAggregationParams = params => {
         url.searchParams.get("quantizeOffset") || "0"
     );
     const singleFrame = url.searchParams.get("singleFrame") === "true";
+    const interactive = url.searchParams.get("interactive") === "true";
     const aggregationParams =  {
         x, y, z,
         singleFrame,
+        interactive,
         quantizeOffset,
         geomType: url.searchParams.get("geomType") || "point",
         delta: parseInt(url.searchParams.get("delta") || "10"),
@@ -78,16 +80,12 @@ const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
     return decodeURI(finalUrlStr);
 };
 
-const getVectorTileAggregated = (aggregatedGeoJSON, options) => {
+const geoJSONtoVectorTile = (geoJSON, options) => {
     const { x, y, z } = options;
-    const tileindex = geojsonVt(aggregatedGeoJSON);
+    const tileindex = geojsonVt(geoJSON);
     const newTile = tileindex.getTile(z, x, y);
-    const geojsonWrapper = new GeoJSONWrapper(newTile.features, {
-        name: "temporalgrid",
-        extent: 4096
-    });
-    return geojsonWrapper;
-};
+    return newTile
+}
 
 const decodeProto = data => {
     const readField = function(tag, obj, pbf) {
@@ -101,17 +99,41 @@ const decodeProto = data => {
     return intArray && intArray.data;
 };
 
-const encodeVectorTile = (data, aggregateParams) => {
-    const int16ArrayBuffer = decodeProto(data);
-    const {x, y, z} = aggregateParams;
+const getTile = (data, options) => {
+    const {x, y, z} = options;
     const tileBBox = tilebelt.tileToBBOX([x, y, z]);
-    const aggregated = aggregate(int16ArrayBuffer, { ...aggregateParams, tileBBox });
-    const aggregatedVectorTile = getVectorTileAggregated(aggregated, aggregateParams);
-    return aggregatedVectorTile;
-};
+    const int16ArrayBuffer = decodeProto(data);
+    const aggregated = aggregate(int16ArrayBuffer, { ...options, tileBBox });
+
+    const mainTile = geoJSONtoVectorTile(aggregated.main, options)
+    const sourceLayers = {
+        temporalgrid: mainTile
+    }
+    if (options.interactive === true) {
+        const interactiveTile = geoJSONtoVectorTile(aggregated.interactive, options)
+        sourceLayers.temporalgrid_interactive = interactiveTile
+    }
+    const geojsonWrapper = new MultiSourceLayerGeoJSONWrapper(sourceLayers, {
+        extent: 4096
+    });
+
+    let pbf = vtpbf.fromGeojsonVt(sourceLayers)
+
+    if (
+        pbf.byteOffset !== 0 ||
+        pbf.byteLength !== pbf.buffer.byteLength
+    ) {
+        // Compatibility with node Buffer (https://github.com/mapbox/pbf/issues/35)
+        pbf = new Uint8Array(pbf);
+    }
+
+    return {
+        vectorTile: geojsonWrapper,
+        rawData: pbf.buffer,
+    }
+}
 
 const loadVectorData = (params, callback) => {
-    // console.log(params.request.url)
     const aggregationParams = getAggregationParams(params);
     // console.log(aggregationParams)
     const url = getFinalurl(params.request.url, aggregationParams);
@@ -123,18 +145,9 @@ const loadVectorData = (params, callback) => {
             if (err) {
                 callback(err);
             } else if (data) {
-                const geojsonWrapper = encodeVectorTile(data, aggregationParams);
-                let pbf = vtpbf(geojsonWrapper);
-                if (
-                    pbf.byteOffset !== 0 ||
-                    pbf.byteLength !== pbf.buffer.byteLength
-                ) {
-                    // Compatibility with node Buffer (https://github.com/mapbox/pbf/issues/35)
-                    pbf = new Uint8Array(pbf);
-                }
+                const tile = getTile(data, aggregationParams)
                 callback(null, {
-                    vectorTile: geojsonWrapper,
-                    rawData: pbf.buffer,
+                    ...tile,
                     cacheControl,
                     expires
                 });
