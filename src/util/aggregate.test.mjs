@@ -86,31 +86,31 @@ tap.equal(getAt([1,1, 0,15340,15341,100,200,300,400,500,600], { numDatasets: 3, 
 
 
 // perf test
-// let sum = 0
-// for (var i = 0; i< 20; i++) {
-//   const t = performance.now()
-//   const geojson = aggregate(bigtile,
-//     {
-//       "x":7,
-//       "y":5,
-//       "z":4,
-//       "singleFrame":false,
-//       "quantizeOffset":15340,
-//       "geomType":"rectangle",
-//       "delta":31,
-//       "numDatasets":2,
-//       "interval":"day",
-//       "breaks":[[0,31,186,310,930],[0,31,186,310,930]],
-//       // "breaks":[[0,31,186],[0,31,186]],
-//       // "breaks":[[0,31,186,310,930]],
-//       // "combinationMode":"compare",
-//       "combinationMode":"compare",
-//       "tileBBox":[-22.5,40.97989806962013,0,55.77657301866769],
-//       interactive: true
-//   })
-//   const delta = performance.now() - t
-//   console.log(delta)
-//   sum += delta
-// }
+let sum = 0
+for (var i = 0; i< 20; i++) {
+  const t = performance.now()
+  const geojson = aggregate(bigtile,
+    {
+      "x":7,
+      "y":5,
+      "z":4,
+      "singleFrame":false,
+      "quantizeOffset":15340,
+      "geomType":"rectangle",
+      "delta":31,
+      "numDatasets":2,
+      "interval":"day",
+      "breaks":[[0,31,186,310,930],[0,31,186,310,930]],
+      // "breaks":[[0,31,186],[0,31,186]],
+      // "breaks":[[0,31,186,310,930]],
+      // "combinationMode":"compare",
+      "combinationMode":"compare",
+      "tileBBox":[-22.5,40.97989806962013,0,55.77657301866769],
+      interactive: true
+  })
+  const delta = performance.now() - t
+  console.log(delta)
+  sum += delta
+}
 
-// console.log('avg:', sum / 20)
+console.log('avg:', sum / 20)
