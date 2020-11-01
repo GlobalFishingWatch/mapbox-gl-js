@@ -137,19 +137,18 @@ const getBivariateValue = (realValues, breaks) => {
     if (breaks) {
         //  y: datasetB
         //     
-        //   |    ? | ?
+        //   |    0 | 0
         //   |   --(u)--+---+---+---+
-        //   |    ? | 0 | 1 | 2 | 3 |
+        //   |    0 | 1 | 2 | 3 | 4 |
         //   |      +---+---+---+---+
-        //   v      | 4 | 5 | 6 | 7 |
+        //   v      | 5 | 6 | 7 | 8 |
         //          +---+---+---+---+
-        //          | 8 | 9 | 10| 11|
+        //          | 9 | 10| 11| 12|
         //          +---+---+---+---+
-        //          | 12| 13| 14| 15|
+        //          | 13| 14| 15| 16|
         //          +---+---+---+---+
         //          --------------> x: datasetA
         //
-
         const valueA = getBucketIndex(breaks[0], realValues[0])
         const valueB = getBucketIndex(breaks[1], realValues[1])
         // || 1: We never want a bucket of 0 - values below first break are not used in bivariate
@@ -157,7 +156,8 @@ const getBivariateValue = (realValues, breaks) => {
         const rowIndex = (valueB || 1) - 1
 
         const index = rowIndex * 4 + colIndex
-        return index
+        // offset by one because values start at 1 (0 reserved for values < min value)
+        return index + 1
 
     } else {
         // only useful for debug
