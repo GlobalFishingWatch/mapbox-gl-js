@@ -45,6 +45,11 @@ const getAggregationParams = params => {
     if (url.searchParams.get("combinationMode")) {
         aggregationParams.combinationMode = url.searchParams.get("combinationMode")
     }
+    if (url.searchParams.get("visible")) {
+        aggregationParams.visible = JSON.parse(url.searchParams.get('visible'))
+    } else {
+        aggregationParams.visible = (new Array(aggregationParams.numDatasets)).fill(true)
+    }
     return aggregationParams
 };
 

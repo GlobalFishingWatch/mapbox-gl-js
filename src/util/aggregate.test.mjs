@@ -15,7 +15,8 @@ const BASE_CONFIG = {
   tileBBox: [-22.5, -21.943045533438177, 0, 0],
   x: 7,
   y: 8,
-  z: 4
+  z: 4,
+  visible: [true, true, true]
 }
 
 const aggregateWith = (intArray, configOverrides) => aggregate(intArray, { ...BASE_CONFIG, ...configOverrides }).main
@@ -85,6 +86,14 @@ tap.equal(getAt([1,1, 0,15340,15341,100,200,300,0,0,0], { numDatasets: 3, combin
 tap.equal(getAt([1,1, 0,15340,15341,100,200,300,400,500,600], { numDatasets: 3, combinationMode: 'cumulative', delta: 2  }, 0, 0), '000500120021')
 
 
+//  Visibility
+const visibilityConfig = { numDatasets: 2, breaks: undefined, visible: [false, true] }
+tap.equal(getAt([1,1, 0,15340,15341,4300,4200,0,0], visibilityConfig, 0, 0), 42)
+tap.equal(getAt([1,1, 0,15340,15341,4300,4200,0,0], { ...visibilityConfig, combinationMode: 'compare' }, 0, 0), '1;42')
+tap.equal(getAt([1,1, 0,15340,15341,4300,4200,0,0], { ...visibilityConfig, combinationMode: 'bivariate' }, 0, 0), '0;42')
+tap.equal(getAt([1,1, 0,15340,15342,4300,4200,4300,4200,0,0], { ...visibilityConfig, combinationMode: 'compare', delta: 2 }, 0, 0), '1;84')
+
+
 // perf test
 let sum = 0
 for (var i = 0; i< 20; i++) {
@@ -106,7 +115,8 @@ for (var i = 0; i< 20; i++) {
       // "combinationMode":"compare",
       "combinationMode":"compare",
       "tileBBox":[-22.5,40.97989806962013,0,55.77657301866769],
-      interactive: true
+      interactive: true,
+      visible: [true, true, true]
   })
   const delta = performance.now() - t
   console.log(delta)
