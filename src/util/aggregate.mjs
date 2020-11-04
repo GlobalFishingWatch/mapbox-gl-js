@@ -89,7 +89,7 @@ const writeValueToFeature = (quantizedTail, valueToWrite, feature) => {
 
 
 // Given breaks [[0, 10, 20, 30], [-15, -5, 0, 5, 15]]:
-//                                    |   |   |   |   |
+//
 //                                    |   |   |   |   |
 //  if first dataset selected     [   0, 10, 20, 30  ]
 //    index returned is:            0 | 1 | 2 | 3 | 4 |
@@ -136,22 +136,28 @@ const getBivariateValue = (realValues, breaks) => {
     if (realValues[0] === 0 && realValues[1] === 0) return undefined
     if (breaks) {
         //  y: datasetB
-        //   ^
-        //   |  +---+---+---+---+
-        //   |  |und| 1 | 2 | 3 |
-        //   |  +---+---+---+---+
-        //      | 4 | 5 | 6 | 7 |
-        //      +---+---+---+---+
-        //      | 8 | 9 | 10| 11|
-        //      +---+---+---+---+
-        //      | 12| 13| 14| 15|
-        //      +---+---+---+---+
-        //          ---> x: datasetA
+        //     
+        //   |    0 | 0
+        //   |   --(u)--+---+---+---+
+        //   |    0 | 1 | 2 | 3 | 4 |
+        //   |      +---+---+---+---+
+        //   v      | 5 | 6 | 7 | 8 |
+        //          +---+---+---+---+
+        //          | 9 | 10| 11| 12|
+        //          +---+---+---+---+
+        //          | 13| 14| 15| 16|
+        //          +---+---+---+---+
+        //          --------------> x: datasetA
         //
         const valueA = getBucketIndex(breaks[0], realValues[0])
         const valueB = getBucketIndex(breaks[1], realValues[1])
-        const index = valueB * (breaks[0].length + 1)  + valueA
-        return index
+        // || 1: We never want a bucket of 0 - values below first break are not used in bivariate
+        const colIndex = (valueA || 1) - 1
+        const rowIndex = (valueB || 1) - 1
+
+        const index = rowIndex * 4 + colIndex
+        // offset by one because values start at 1 (0 reserved for values < min value)
+        return index + 1
 
     } else {
         // only useful for debug
@@ -196,7 +202,7 @@ const aggregate = (intArray, options) => {
             if (breaks.length !== 2) throw new Error('bivariate combinationMode requires exactly two breaks array')
             if (breaks[0].length !== breaks[1].length) throw new Error('bivariate breaks arrays must have the same length')
             // TODO This might change if we want bivariate with more or less than 16 classes
-            if (breaks[0].length !== 3 || breaks[1].length !== 3 ) throw new Error('each bivariate breaks array require exactly 3 values')
+            if (breaks[0].length !== 4 || breaks[1].length !== 4 ) throw new Error('each bivariate breaks array require exactly 4 values')
         }
     }
 
