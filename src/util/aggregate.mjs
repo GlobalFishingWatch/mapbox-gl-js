@@ -188,6 +188,7 @@ const aggregate = (intArray, options) => {
         x, y, z,
         numDatasets,
         combinationMode,
+        visible,
     } = options;
 
     if (breaks && breaks.length !== numDatasets && (combinationMode === 'compare' || combinationMode === 'bivariate')) {
@@ -308,7 +309,10 @@ const aggregate = (intArray, options) => {
                     }
 
                     // collect "working" value, ie value at head by substracting tail value
-                    const realValueAtFrameForDataset = currentAggregatedValues[datasetIndex] + realValue - tailValue;
+                    let realValueAtFrameForDataset = 0
+                    if (visible[datasetIndex]) {
+                        realValueAtFrameForDataset = currentAggregatedValues[datasetIndex] + realValue - tailValue;
+                    }
                     currentAggregatedValues[datasetIndex] = realValueAtFrameForDataset
 
                     // Compute mode-specific values
