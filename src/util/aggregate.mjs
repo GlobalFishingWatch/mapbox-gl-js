@@ -136,7 +136,7 @@ const getBivariateValue = (realValues, breaks) => {
     if (realValues[0] === 0 && realValues[1] === 0) return undefined
     if (breaks) {
         //  y: datasetB
-        //     
+        //
         //   |    0 | 0
         //   |   --(u)--+---+---+---+
         //   |    0 | 1 | 2 | 3 | 4 |
@@ -237,10 +237,9 @@ const aggregate = (intArray, options) => {
     // const t = performance.now()
     // console.log(x, y, z, intArray)
 
-    for (let i = 2; i < intArray.length; i++) {
-        const value = intArray[i];
-        if (singleFrame) {
-            // singleFrame means cell, value, cell, value in the intArray response
+    if (singleFrame) {
+        for (let i = 2; i < intArray.length; i++) {
+            const value = intArray[i];
             if (i % 2 === 0) {
                 currentFeatureCell = value;
             } else {
@@ -254,11 +253,13 @@ const aggregate = (intArray, options) => {
                     id: uniqueId,
                 }
                 currentFeature = getFeature(featureParams)
+                currentFeature.properties.value = value / VALUE_MULTIPLIER
                 features.push(currentFeature);
-
-                currentAggregatedValues = Array(numDatasets).fill(0);
             }
-        } else {
+        }
+    } else {
+        for (let i = 2; i < intArray.length; i++) {
+            const value = intArray[i];
             switch (featureBufferPos) {
                 // cell
                 case 0:
@@ -332,7 +333,7 @@ const aggregate = (intArray, options) => {
                     if (combinationMode === 'literal' || interactive) {
                         // literalValuesStr += Math.floor(realValueAtFrameForDataset * 100) / 100
                         // Just rounding is faster - revise if decimals are needed
-                        // Use ceil to avoid values being 'mute' when very close to zero 
+                        // Use ceil to avoid values being 'mute' when very close to zero
                         literalValuesStr += Math.ceil(realValueAtFrameForDataset)
                         if (datasetIndex < numDatasets - 1) {
                             literalValuesStr += ','
@@ -346,20 +347,20 @@ const aggregate = (intArray, options) => {
 
                         if (combinationMode === 'literal' || interactive) {
                             literalValuesStr += ']'
-                        } 
+                        }
                         // TODO add 'single' mode
                         if (combinationMode === 'compare') {
                             finalValue = getCompareValue(datasetsHighestRealValue, datasetsHighestRealValueIndex, breaks)
-                        } 
+                        }
                         else if (combinationMode === 'add') {
                             finalValue = getAddValue(realValuesSum, breaks)
-                        } 
+                        }
                         else if (combinationMode === 'bivariate') {
                             finalValue = getBivariateValue(currentAggregatedValues, breaks)
                         }
                         else if (combinationMode === 'literal') {
                             finalValue = literalValuesStr
-                        } 
+                        }
                         else if (combinationMode === 'cumulative') {
                             finalValue = getCumulativeValue(realValuesSum, cumulativeValuesPaddedStrings)
                         }
@@ -369,7 +370,7 @@ const aggregate = (intArray, options) => {
                             writeValueToFeature(quantizedTail, interactiveValue, currentFeatureInteractive)
                         }
                     }
-                               
+
                     if (datasetIndex === numDatasets - 1) {
                         // When all dataset values have been collected for this frame, we can move to next frame
                         head++;
