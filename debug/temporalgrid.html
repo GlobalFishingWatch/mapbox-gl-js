@@ -1,169 +1,194 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Mapbox GL JS debug page</title>
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel='stylesheet' href='../dist/mapbox-gl.css' />
     <style>
-        body { margin: 0; padding: 0; }
-        html, body, #map { height: 100%; }
+        body {
+            margin: 0;
+            padding: 0;
+        }
 
-        .buttons-container { position: absolute; top: 0; left: 0; }
+        html,
+        body,
+        #map {
+            height: 100%;
+        }
+
+        .buttons-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
     </style>
 </head>
 
 <body>
-<div id='map'></div>
+    <div id='map'></div>
 
-<div class="buttons-container">
-    <button id="updatesource">update source style</button>
-    <button id="updatelayer">update layer style</button>
-    delta: <input id="delta" type="number" value="300">
-    day: <input id="day" type="number" value="17167">(<span id="day-preview"></span>)
-</div>
+    <div class="buttons-container">
+        <button id="updatesource">update source style</button>
+        <button id="updatelayer">update layer style</button>
+        delta: <input id="delta" type="number" value="300">
+        day: <input id="day" type="number" value="17167">(<span id="day-preview"></span>)
+    </div>
 
-<script src='../dist/mapbox-gl-dev.js'></script>
-<script src='../debug/access_token_generated.js'></script>
-<script>
-const apiTilesUrl = 'https://fst-tiles-jzzp2ui3wq-uc.a.run.app/v1';
-const tileset = 'carriers_v3';
-const baseUrl = `${apiTilesUrl}/${tileset}/tile/heatmap/{z}/{x}/{y}`
-const id = 'heatmap';
+    <script src='../dist/mapbox-gl-dev.js'></script>
+    <script src='../debug/access_token_generated.js'></script>
+    <script>
+        // const API_GATEWAY = 'https://gateway.api.dev.globalfishingwatch.org/v1'
+        const API_GATEWAY = 'https://gateway.api.globalfishingwatch.org/v1'
+        // grab this from api auth
+        const GATEWAY_T = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImtpZEtleSJ9.eyJkYXRhIjp7ImZpcnN0TmFtZSI6Ikpvc2UgQW5nZWwiLCJsYXN0TmFtZSI6IlBhcnJlw7FvIE1hZHJpZ2FsIiwiZW1haWwiOiJqb3NlYW5nZWxAZ2xvYmFsZmlzaGluZ3dhdGNoLm9yZyIsInBob3RvIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EtL0FPaDE0R2hvdVNwcW9zYU9jSDRoalhReFFQVUhsaUQtRmhKWl82eHZjdllFIiwiaWQiOjEzLCJ0eXBlIjoidXNlciJ9LCJpYXQiOjE2MDU2MjM3OTIsImV4cCI6MTYwNTYyNTU5MiwiYXVkIjoiZ2Z3IiwiaXNzIjoiZ2Z3In0.O3gqrWjWuj4rJY7wrPTtr9Q0lfi4EdNgLL7EzukpQp1UAJd4iHCOFQQKp_QBmxAdqPCQWjzJEIt3awFw95zm8LPV7nnWs6B7-aLi-1tSKRx3BOZhWsZgSwR9KYHWpfOk9GL67jjH41GUToNbcCNOc8m-oKiQ7PaR2Qg9NDD3Q-L-n1j3GJPB3QOCLN2Qi6szxGGaMP6-RFmdkCFMU7ovRdIYsEHAi0T6bMpyvsMCEzIVPNSqZ9_V59q-GAlueRc-6i3Vq40O-JxQoa3BbVPbU3CTaQXbX7tfEopxHGRhP3W3aRnf7bBgecvoHWtbeah1cxoCrP5OBt3-BT2N0vbrSXaPljd5n1zyT6C6h9Fgy96FZzvEOr9sqt_D38WSH3TJj0OBnWuFTTAZt9G55oV3Op4_3un5eSUie5dhho92dBcziZBvQZKrhXcMY7_6eqDbMYhXgMqqZig6RorzBgqFlT-JW8czeYp76n2a17_NVpEeUH9_Le3OsUFsUF-TGf1K'
+        const tileset = 'carriers_v8_hd';
+        const baseUrl = `${API_GATEWAY}/datasets/${tileset}/4wings/tile/heatmap/{z}/{x}/{y}`
+        const id = 'heatmap';
 
-let delta = 300
-let day = 17167
+        let delta = 300
+        let day = 17167
 
-const style = {
-  version: 8,
-  name: 'temporal grid test',
-  glyphs:
-    'https://raw.githubusercontent.com/GlobalFishingWatch/map-gl-glyphs/master/_output/{fontstack}/{range}.pbf?raw=true',
-  sources: {
-    basemap_vector: {
-      type: 'vector',
-      tiles: ['https://storage.googleapis.com/public-tiles/tiles-basemap/{z}/{x}/{y}.pbf'],
-      maxzoom: 8,
-    },
-    [id]: {
-      type: 'temporalgrid',
-      tiles: [baseUrl],
-    }
-  },
-  layers: [
-    {
-      type: 'fill',
-      id: 'landmass',
-      source: 'basemap_vector',
-      'source-layer': 'landmass',
-      paint: {
-        'fill-color': '#cccccc',
-        'fill-opacity': 0.99,
-      },
-    },
-    {
-      id,
-      type: 'circle',
-      source: id,
-      'source-layer': 'temporalgrid',
-      paint: {
-        'circle-color': '#0000ff',
-        'circle-radius': 2
-      },
-      layout: {
-          'visibility': 'visible'
-      }
-    },
-    {
-      id: 'heatmap-values',
-      type: 'symbol',
-      source: id,
-      'source-layer': 'temporalgrid',
-      paint: {
-          'text-halo-color': 'white',
-          'text-halo-width': 2
-      },
-      layout: {
-          'text-field': '{id}',
-          'text-font': ['Roboto Mono Light'],
-          'text-size': 7,
-          'text-allow-overlap': true,
-          'icon-allow-overlap': true,
-        },
-    }
-  ]
-};
-
-
-var map = window.map = new mapboxgl.Map({
-    container: 'map',
-    zoom: 1,
-    center: [1, 1],
-    style: style,
-    hash: true
-});
-
-map.showTileBoundaries = true
-
-map.on('click', (e) => {
-  var q = map.queryRenderedFeatures(e.point)
-  console.log(q)
-})
-
-map.on('load', () => {
-    updateDay()
-    updateSource()
-})
-
-function getRandomColor() {
-  var letters = '0123456789ABCDEF';
-  var color = '#';
-  for (var i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
-}
-
-function updateSource() {
-    let url = `${baseUrl}?delta=${delta}`
-    const s = map.getStyle()
-    s.sources[id].tiles = [url]
-    console.log(s)
-    map.setStyle(s)
-    console.log(map.getStyle())
-}
-
-function updateDay() {
-    const s = map.getStyle()
-    console.log(s)
-    let d = new Date(parseInt(day) * 1000 * 60 * 60 * 24)
-    document.getElementById('day-preview').innerText = d
-
-    s.layers[2].layout['text-field'] = `{${day}}`
-    map.setStyle(s)
-}
+        const style = {
+            version: 8,
+            name: 'temporal grid test',
+            glyphs:
+                'https://raw.githubusercontent.com/GlobalFishingWatch/map-gl-glyphs/master/_output/{fontstack}/{range}.pbf?raw=true',
+            sources: {
+                basemap_vector: {
+                    type: 'vector',
+                    tiles: ['https://storage.googleapis.com/public-tiles/tiles-basemap/{z}/{x}/{y}.pbf'],
+                    maxzoom: 8,
+                },
+                [id]: {
+                    type: 'temporalgrid',
+                    tiles: [baseUrl],
+                }
+            },
+            layers: [
+                {
+                    type: 'fill',
+                    id: 'landmass',
+                    source: 'basemap_vector',
+                    'source-layer': 'landmass',
+                    paint: {
+                        'fill-color': '#cccccc',
+                        'fill-opacity': 0.99,
+                    },
+                },
+                {
+                    id,
+                    type: 'circle',
+                    source: id,
+                    'source-layer': 'temporalgrid',
+                    paint: {
+                        'circle-color': '#0000ff',
+                        'circle-radius': 2
+                    },
+                    layout: {
+                        'visibility': 'visible'
+                    }
+                },
+                {
+                    id: 'heatmap-values',
+                    type: 'symbol',
+                    source: id,
+                    'source-layer': 'temporalgrid',
+                    paint: {
+                        'text-halo-color': 'white',
+                        'text-halo-width': 2
+                    },
+                    layout: {
+                        'text-field': '{id}',
+                        'text-font': ['Roboto Mono Light'],
+                        'text-size': 7,
+                        'text-allow-overlap': true,
+                        'icon-allow-overlap': true,
+                    },
+                }
+            ]
+        };
 
 
-document.getElementById('updatelayer').addEventListener('click', () => {
-    map.setPaintProperty('heatmap', 'circle-color', getRandomColor())
-});
+        var map = window.map = new mapboxgl.Map({
+            container: 'map',
+            zoom: 1,
+            center: [1, 1],
+            style: style,
+            hash: true,
+            transformRequest: (url, resourceType) => {
+                if (resourceType === 'Tile' && url.includes(API_GATEWAY)) {
+                    return {
+                        url: url,
+                        headers: { 'Authorization': 'Bearer ' + GATEWAY_T }
+                    }
+                }
+            }
+        });
 
-document.getElementById('updatesource').addEventListener('click', () => {
-    updateSource()
-});
+        map.showTileBoundaries = true
 
-document.getElementById('delta').addEventListener('change', (e) => {
-    delta = e.currentTarget.value
-    console.log(delta)
-    updateSource()
-})
+        map.on('click', (e) => {
+            var q = map.queryRenderedFeatures(e.point)
+            console.log(q)
+        })
 
-document.getElementById('day').addEventListener('change', (e) => {
-    day = e.currentTarget.value
-    console.log(day)
-    updateDay()
-})
+        map.on('load', () => {
+            // updateDay()
+            // updateSource()
+        })
 
-</script>
+        function getRandomColor() {
+            var letters = '0123456789ABCDEF';
+            var color = '#';
+            for (var i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        function updateSource() {
+            let url = `${baseUrl}?delta=${delta}`
+            const s = map.getStyle()
+            s.sources[id].tiles = [url]
+            console.log(s)
+            map.setStyle(s)
+            console.log(map.getStyle())
+        }
+
+        function updateDay() {
+            const s = map.getStyle()
+            console.log(s)
+            let d = new Date(parseInt(day) * 1000 * 60 * 60 * 24)
+            document.getElementById('day-preview').innerText = d
+
+            s.layers[2].layout['text-field'] = `{${day}}`
+            map.setStyle(s)
+        }
+
+
+        document.getElementById('updatelayer').addEventListener('click', () => {
+            map.setPaintProperty('heatmap', 'circle-color', getRandomColor())
+        });
+
+        document.getElementById('updatesource').addEventListener('click', () => {
+            updateSource()
+        });
+
+        document.getElementById('delta').addEventListener('change', (e) => {
+            delta = e.currentTarget.value
+            console.log(delta)
+            updateSource()
+        })
+
+        document.getElementById('day').addEventListener('change', (e) => {
+            day = e.currentTarget.value
+            console.log(day)
+            updateDay()
+        })
+
+    </script>
 </body>
+
 </html>
