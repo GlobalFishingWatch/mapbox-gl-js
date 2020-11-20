@@ -39,10 +39,10 @@
     <script src='../dist/mapbox-gl-dev.js'></script>
     <script src='../debug/access_token_generated.js'></script>
     <script>
-        // const API_GATEWAY = 'https://gateway.api.dev.globalfishingwatch.org/v1'
-        const API_GATEWAY = 'https://gateway.api.globalfishingwatch.org/v1'
+        const API_GATEWAY = 'https://gateway.api.dev.globalfishingwatch.org/v1'
+        // const API_GATEWAY = 'https://gateway.api.globalfishingwatch.org/v1'
         // grab this from api auth
-        const GATEWAY_T = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImtpZEtleSJ9.eyJkYXRhIjp7ImZpcnN0TmFtZSI6Ikpvc2UgQW5nZWwiLCJsYXN0TmFtZSI6IlBhcnJlw7FvIE1hZHJpZ2FsIiwiZW1haWwiOiJqb3NlYW5nZWxAZ2xvYmFsZmlzaGluZ3dhdGNoLm9yZyIsInBob3RvIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EtL0FPaDE0R2hvdVNwcW9zYU9jSDRoalhReFFQVUhsaUQtRmhKWl82eHZjdllFIiwiaWQiOjEzLCJ0eXBlIjoidXNlciJ9LCJpYXQiOjE2MDU2MjM3OTIsImV4cCI6MTYwNTYyNTU5MiwiYXVkIjoiZ2Z3IiwiaXNzIjoiZ2Z3In0.O3gqrWjWuj4rJY7wrPTtr9Q0lfi4EdNgLL7EzukpQp1UAJd4iHCOFQQKp_QBmxAdqPCQWjzJEIt3awFw95zm8LPV7nnWs6B7-aLi-1tSKRx3BOZhWsZgSwR9KYHWpfOk9GL67jjH41GUToNbcCNOc8m-oKiQ7PaR2Qg9NDD3Q-L-n1j3GJPB3QOCLN2Qi6szxGGaMP6-RFmdkCFMU7ovRdIYsEHAi0T6bMpyvsMCEzIVPNSqZ9_V59q-GAlueRc-6i3Vq40O-JxQoa3BbVPbU3CTaQXbX7tfEopxHGRhP3W3aRnf7bBgecvoHWtbeah1cxoCrP5OBt3-BT2N0vbrSXaPljd5n1zyT6C6h9Fgy96FZzvEOr9sqt_D38WSH3TJj0OBnWuFTTAZt9G55oV3Op4_3un5eSUie5dhho92dBcziZBvQZKrhXcMY7_6eqDbMYhXgMqqZig6RorzBgqFlT-JW8czeYp76n2a17_NVpEeUH9_Le3OsUFsUF-TGf1K'
+        const GATEWAY_T = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImtpZEtleSJ9.eyJkYXRhIjp7ImZpcnN0TmFtZSI6Ikpvc2UgQW5nZWwiLCJsYXN0TmFtZSI6IlBhcnJlw7FvIE1hZHJpZ2FsICIsImVtYWlsIjoiam9zZWFuZ2VsQGdsb2JhbGZpc2hpbmd3YXRjaC5vcmciLCJwaG90byI6IiIsImlkIjo0NSwidHlwZSI6InVzZXIifSwiaWF0IjoxNjA1ODY0NjU2LCJleHAiOjE2MDU4NjY0NTYsImF1ZCI6ImdmdyIsImlzcyI6ImdmdyJ9.K39HbyE005HTrHJFoVZA1ePXLaHyDeS1rO-U-o08a7lOlhraHsg2_zRb79QH7wa80lh2a9haOXau-5AxgvS6jRTLuHn9qXDuR3E2YYof72_Fc5GAq9TnYQuvqtF488pvoMOXKJfYgFVTnQmuKGC8RKG0wTIUSIf4_4u2vpms8KFfpCl8Sdvby1TJAUZBkXXqy8itWN9lSOjREHyyGvm5bJJeAW4mfNhDvy0v0fLxHup0o-0C-MH0CFQtH6XIWch2w47AB2fNA5XGER0bpBoo5cI9YjYUUpPXaVPXib_YiqYdBXam4KxJwkr4w3bkdkRPAgvEC6SibKIggm6hwtc404Xj0MywuvPDHO_iQ9OVpC2jXWoDcE1QqQVXbRYqNw6k_9M5Pc_wWCkkACLSthIXI2rKiGeEOkxC18eum5KbFBTYQPC3XIO13VOierMCkhqNWdJlJoeQTWXnRYAjLEonF3WORbeC8boljK1x5fRcdbktWeXaKaIDDcoBHC_SRXXR'
         const tileset = 'carriers_v8_hd';
         const baseUrl = `${API_GATEWAY}/datasets/${tileset}/4wings/tile/heatmap/{z}/{x}/{y}`
         const id = 'heatmap';
@@ -64,6 +64,13 @@
                 [id]: {
                     type: 'temporalgrid',
                     tiles: [baseUrl],
+                },
+                'fourwings-dgg_salinity_caribe': {
+                    "type": "temporalgrid",
+                    "tiles": [
+                        "https://gateway.api.dev.globalfishingwatch.org/v1/4wings/tile/heatmap/{z}/{x}/{y}?geomType=rectangle&singleFrame=true&datasets=datasets[0]%3Ddgg_salinity_caribe&date-range=2018-01-01T00%3A00%3A00.000Z%2C2019-12-31T23%3A59%3A59.999Z"
+                    ],
+                    "maxzoom": 8
                 }
             },
             layers: [
@@ -106,6 +113,94 @@
                         'text-allow-overlap': true,
                         'icon-allow-overlap': true,
                     },
+                },
+                {
+                    "id": "fourwings-dgg_salinity_caribe",
+                    "source": "fourwings-dgg_salinity_caribe",
+                    "source-layer": "temporalgrid",
+                    "type": "fill",
+                    "layout": {
+                        "visibility": "visible"
+                    },
+                    "paint": {
+                        "fill-outline-color": "transparent",
+                        "fill-color": [
+                            "interpolate",
+                            [
+                                "linear"
+                            ],
+                            [
+                                "to-number",
+                                [
+                                    "get",
+                                    "value"
+                                ]
+                            ],
+                            31,
+                            "rgba(0, 238, 255, 0)",
+                            34,
+                            "rgba(0, 238, 255, 0.14285714285714285)",
+                            34.5,
+                            "rgba(0, 238, 255, 0.2857142857142857)",
+                            35,
+                            "rgba(0, 238, 255, 0.42857142857142855)",
+                            35.5,
+                            "rgba(0, 238, 255, 0.5714285714285714)",
+                            36,
+                            "rgba(0, 238, 255, 0.7142857142857143)",
+                            36.5,
+                            "rgba(0, 238, 255, 0.8571428571428571)",
+                            37,
+                            "rgba(0, 238, 255, 1)"
+                        ]
+                    },
+                    "metadata": {
+                        "color": "#00EEFF",
+                        "legend": {
+                            "label": "Salinity for caribe",
+                            "unit": "PSU",
+                            "type": "colorramp",
+                            "ramp": [
+                                [
+                                    31,
+                                    "rgba(0, 238, 255, 0)"
+                                ],
+                                [
+                                    34,
+                                    "rgba(0, 238, 255, 0.14285714285714285)"
+                                ],
+                                [
+                                    34.5,
+                                    "rgba(0, 238, 255, 0.2857142857142857)"
+                                ],
+                                [
+                                    35,
+                                    "rgba(0, 238, 255, 0.42857142857142855)"
+                                ],
+                                [
+                                    35.5,
+                                    "rgba(0, 238, 255, 0.5714285714285714)"
+                                ],
+                                [
+                                    36,
+                                    "rgba(0, 238, 255, 0.7142857142857143)"
+                                ],
+                                [
+                                    36.5,
+                                    "rgba(0, 238, 255, 0.8571428571428571)"
+                                ],
+                                [
+                                    37,
+                                    "rgba(0, 238, 255, 1)"
+                                ]
+                            ]
+                        },
+                        "generatorId": "fourwings-dgg_salinity_caribe",
+                        "generatorType": "HEATMAP",
+                        "gridArea": null,
+                        "currentlyAt": "value",
+                        "group": "heatmap"
+                    }
                 }
             ]
         };
