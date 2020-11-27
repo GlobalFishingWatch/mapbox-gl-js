@@ -334,7 +334,8 @@ const aggregate = (intArray, options) => {
                         // literalValuesStr += Math.floor(realValueAtFrameForDataset * 100) / 100
                         // Just rounding is faster - revise if decimals are needed
                         // Use ceil to avoid values being 'mute' when very close to zero
-                        literalValuesStr += Math.ceil(realValueAtFrameForDataset)
+                        // Update: use .round to avoid discrepancies betwen interaction and total ammount
+                        literalValuesStr += Math.round(realValueAtFrameForDataset)
                         if (datasetIndex < numDatasets - 1) {
                             literalValuesStr += ','
                         }
