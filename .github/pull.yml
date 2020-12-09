@@ -1,5 +1,5 @@
-version: '1'
-rules:
-  - base: master
-    upstream: mapbox:main
-    mergeMethod: hardreset
+# version: '1'
+# rules:
+#   - base: master
+#     upstream: mapbox:main
+#     mergeMethod: hardreset
