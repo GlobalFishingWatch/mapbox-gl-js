@@ -31,10 +31,7 @@ const getPointFeature = (tileBBox, cell, numCols, numRows) => {
 
     return {
         type: "Feature",
-        properties: {
-            _col: col,
-            _row: row,
-        },
+        properties: {},
         geometry: {
             type: "Point",
             coordinates: [pointMinX, pointMinY]
@@ -52,10 +49,7 @@ const getRectangleFeature = (tileBBox, cell, numCols, numRows) => {
     const squareMaxY = minY + ((row + 1) / numRows) * height;
     return {
         type: "Feature",
-        properties: {
-            _col: col,
-            _row: row,
-        },
+        properties: {},
         geometry: {
             type: "Polygon",
             coordinates: [
@@ -77,7 +71,6 @@ const getFeature = ({ geomType, tileBBox, cell, numCols, numRows, id }) => {
         : getRectangleFeature(tileBBox, cell, numCols, numRows)
 
     feature.id = id
-    feature.properties._cell = cell
 
     return feature
 };
@@ -217,10 +210,11 @@ const aggregate = (intArray, options) => {
     let currentFeature;
     let currentFeatureInteractive;
     let currentFeatureCell;
+    let currentFeatureIntArrayPos; // intArray start index for the current feature
     let currentFeatureMinTimestamp;
     let currentFeatureMaxTimestamp;
     let currentFeatureTimestampDelta;
-    let featureBufferPos = 0;
+    let featureBufferPos = 0; // position inside the feature
     let featureBufferValuesPos = 0;
     let head;
     let tail;
@@ -263,6 +257,7 @@ const aggregate = (intArray, options) => {
             switch (featureBufferPos) {
                 // cell
                 case 0:
+                    currentFeatureIntArrayPos = i
                     currentFeatureCell = value;
                     const uniqueId = generateUniqueId(x, y, currentFeatureCell)
                     const featureParams = {
@@ -330,7 +325,7 @@ const aggregate = (intArray, options) => {
                         const cumulativeValuePaddedString = Math.round(realValuesSum).toString().padStart(4, '0')
                         cumulativeValuesPaddedStrings.push(cumulativeValuePaddedString)
                     }
-                    if (combinationMode === 'literal' || interactive) {
+                    if (combinationMode === 'literal') {
                         // literalValuesStr += Math.floor(realValueAtFrameForDataset * 100) / 100
                         // Just rounding is faster - revise if decimals are needed
                         // Use ceil to avoid values being 'mute' when very close to zero
@@ -346,7 +341,7 @@ const aggregate = (intArray, options) => {
                     if (quantizedTail >= 0 && datasetIndex === numDatasets - 1) {
                         let finalValue
 
-                        if (combinationMode === 'literal' || interactive) {
+                        if (combinationMode === 'literal') {
                             literalValuesStr += ']'
                         }
                         // TODO add 'single' mode
@@ -366,10 +361,6 @@ const aggregate = (intArray, options) => {
                             finalValue = getCumulativeValue(realValuesSum, cumulativeValuesPaddedStrings)
                         }
                         writeValueToFeature(quantizedTail, finalValue, currentFeature)
-                        if (interactive) {
-                            const interactiveValue = literalValuesStr
-                            writeValueToFeature(quantizedTail, interactiveValue, currentFeatureInteractive)
-                        }
                     }
 
                     if (datasetIndex === numDatasets - 1) {
@@ -394,6 +385,7 @@ const aggregate = (intArray, options) => {
             if (isEndOfFeature) {
                 features.push(currentFeature);
                 if (interactive) {
+                    currentFeatureInteractive.properties.rawValues = intArray.slice(currentFeatureIntArrayPos + 1, i + 1).join(',')
                     featuresInteractive.push(currentFeatureInteractive)
                 }
 
