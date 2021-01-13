@@ -22,16 +22,21 @@ const getCellCoords = (tileBBox, cell, numCols) => {
     };
 };
 
-const getPointFeature = (tileBBox, cell, numCols, numRows) => {
+const getPointFeature = (tileBBox, cell, numCols, numRows, addMeta) => {
     const [minX, minY] = tileBBox;
     const { col, row, width, height } = getCellCoords(tileBBox, cell, numCols);
 
     const pointMinX = minX + (col / numCols) * width;
     let pointMinY = minY + (row / numRows) * height;
 
+    const properties = (addMeta) ? {
+        _col: col,
+        _row: row,
+    } : {}
+
     return {
         type: "Feature",
-        properties: {},
+        properties,
         geometry: {
             type: "Point",
             coordinates: [pointMinX, pointMinY]
@@ -39,7 +44,7 @@ const getPointFeature = (tileBBox, cell, numCols, numRows) => {
     }
 };
 
-const getRectangleFeature = (tileBBox, cell, numCols, numRows) => {
+const getRectangleFeature = (tileBBox, cell, numCols, numRows, addMeta) => {
     const [minX, minY] = tileBBox;
     const { col, row, width, height } = getCellCoords(tileBBox, cell, numCols);
 
@@ -47,9 +52,15 @@ const getRectangleFeature = (tileBBox, cell, numCols, numRows) => {
     const squareMinY = minY + (row / numRows) * height;
     const squareMaxX = minX + ((col + 1) / numCols) * width;
     const squareMaxY = minY + ((row + 1) / numRows) * height;
+
+    const properties = (addMeta) ? {
+        _col: col,
+        _row: row,
+    } : {}
+
     return {
         type: "Feature",
-        properties: {},
+        properties,
         geometry: {
             type: "Polygon",
             coordinates: [
@@ -65,10 +76,10 @@ const getRectangleFeature = (tileBBox, cell, numCols, numRows) => {
     };
 };
 
-const getFeature = ({ geomType, tileBBox, cell, numCols, numRows, id }) => {
+const getFeature = ({ geomType, tileBBox, cell, numCols, numRows, id, addMeta }) => {
     const feature = (geomType === 'point')
-        ? getPointFeature(tileBBox, cell, numCols, numRows)
-        : getRectangleFeature(tileBBox, cell, numCols, numRows)
+        ? getPointFeature(tileBBox, cell, numCols, numRows, addMeta)
+        : getRectangleFeature(tileBBox, cell, numCols, numRows, addMeta)
 
     feature.id = id
 
@@ -270,7 +281,7 @@ const aggregate = (intArray, options) => {
                     }
                     currentFeature = getFeature(featureParams)
                     if (interactive) {
-                        currentFeatureInteractive = getFeature(featureParams)
+                        currentFeatureInteractive = getFeature({ ...featureParams, addMeta: true })
                     }
                     break;
                 // minTs
