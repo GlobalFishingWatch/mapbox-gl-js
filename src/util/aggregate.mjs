@@ -342,7 +342,7 @@ const aggregate = (intArray, options) => {
                         realValuesSum += realValueAtFrameForDataset
                     }
                     if (combinationMode === 'cumulative') {
-                        const cumulativeValuePaddedString = Math.round(realValuesSum).toString().padStart(4, '0')
+                        const cumulativeValuePaddedString = Math.round(realValuesSum).toString().padStart(6, '0')
                         cumulativeValuesPaddedStrings.push(cumulativeValuePaddedString)
                     }
                     if (combinationMode === 'literal') {

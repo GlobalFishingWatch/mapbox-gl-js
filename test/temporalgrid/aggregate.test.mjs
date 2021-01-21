@@ -81,9 +81,10 @@ tap.equal(getAt([1, 1, 0,15340,15341,9999,9999,0,0], { numDatasets: 2, combinati
 tap.equal(getAt([1, 1, 0,15340,15341,99,99,0,0], { numDatasets: 2, combinationMode: 'bivariate', breaks: bivBreaks }, 0, 0), 1)
 
 
-// cumulative                                                                                                       AAAABBBBCCCC
-tap.equal(getAt([1,1, 0,15340,15341,100,200,300,0,0,0], { numDatasets: 3, combinationMode: 'cumulative'  }, 0, 0), '010003000600')
-tap.equal(getAt([1,1, 0,15340,15341,100,200,300,400,500,600], { numDatasets: 3, combinationMode: 'cumulative', delta: 2  }, 0, 0), '050012002100')
+// cumulative                                                                                                       AAAAAABBBBBBCCCCCC
+tap.equal(getAt([1,1, 0,15340,15341,100,200,300,0,0,0], { numDatasets: 3, combinationMode: 'cumulative'  }, 0, 0), '000100000300000600')
+//                                                                                                                                  AAAAAABBBBBBCCCCCC
+tap.equal(getAt([1,1, 0,15340,15341,100,200,300,400,500,600], { numDatasets: 3, combinationMode: 'cumulative', delta: 2  }, 0, 0), '000500001200002100')
 
 
 //  Visibility
