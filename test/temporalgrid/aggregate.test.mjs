@@ -1,10 +1,10 @@
-import aggregate from "./aggregate.mjs";
+import aggregate from "../../src/util/aggregate.mjs";
 import tap from 'tap'
-import bigtile from './test/bigtile.mjs'
+import bigtile from './bigtile.mjs'
 import { performance } from 'perf_hooks';
 
 const BASE_CONFIG = {
-  breaks: [[0, 1, 5, 10, 15, 30]],
+  breaks: [[0, 100, 500, 1000, 1500, 3000]],
   delta: 1,
   geomType: 'gridded',
   interval: 'day',
@@ -32,11 +32,11 @@ const getAt = (intArray, configOverrides, featureIndex, timeIndex, expect) => {
 // aggregation per se
 //                                   0         5          10        15
 const aggTest = [1,1, 0,15340,15355,4200,200,100,0,0,1200,0,0,0,0,300,200,100,0,0,12300]
-tap.equal(getAt(aggTest, { breaks: undefined, delta: 1 }, 0, 0), 42)
-tap.equal(getAt(aggTest, { breaks: undefined, delta: 5 }, 0, 0), 45)
-tap.equal(getAt(aggTest, { breaks: undefined, delta: 5 }, 0, 1), 15)
-tap.equal(getAt(aggTest, { breaks: undefined, delta: 5 }, 0, 10), 6)
-tap.equal(getAt(aggTest, { breaks: undefined, delta: 6 }, 0, 10), 129)
+tap.equal(getAt(aggTest, { breaks: undefined, delta: 1 }, 0, 0), 4200)
+tap.equal(getAt(aggTest, { breaks: undefined, delta: 5 }, 0, 0), 4500)
+tap.equal(getAt(aggTest, { breaks: undefined, delta: 5 }, 0, 1), 1500)
+tap.equal(getAt(aggTest, { breaks: undefined, delta: 5 }, 0, 10), 600)
+tap.equal(getAt(aggTest, { breaks: undefined, delta: 6 }, 0, 10), 12900)
 tap.equal(getAt(aggTest, { breaks: undefined, delta: 7 }, 0, 10), undefined) // since we dont compute trail anymore
 
 
@@ -47,14 +47,14 @@ tap.equal(getAt([1,1, 0, 15340,15341,2999, 0], {}, 0, 0), 5)
 tap.equal(getAt([1,1, 0, 15340,15341,3001, 0], {}, 0, 0), 6)
 tap.equal(getAt([1,1, 0, 15340,15341,999999, 0], {}, 0, 0), 6)
 tap.equal(getAt([1,1, 0,15340,15341,0,0], {}, 0, 0), undefined)
-tap.equal(getAt([1,1, 0,15340,15341,42,0], { breaks: undefined }, 0, 0), .42)
+tap.equal(getAt([1,1, 0,15340,15341,42,0], { breaks: undefined }, 0, 0), 42)
 
-tap.equal(getAt([1,1, 0,15340,15341,42,43,0,0], { numDatasets: 2, breaks: undefined }, 0, 0), .85)
-tap.equal(getAt([1,2, 0,15340,15341,42,43,0,0, 1,15340,15341,52,53,0,0], { numDatasets: 2, breaks: undefined }, 1, 0), 1.05) // test with 2 features
-tap.equal(getAt([1,1, 0,15340,15341,42,43,0,0], { numDatasets: 2, combinationMode: 'compare', breaks: undefined }, 0, 0), '1;0.43')
+tap.equal(getAt([1,1, 0,15340,15341,42,43,0,0], { numDatasets: 2, breaks: undefined }, 0, 0), 85)
+tap.equal(getAt([1,2, 0,15340,15341,42,43,0,0, 1,15340,15341,52,53,0,0], { numDatasets: 2, breaks: undefined }, 1, 0), 105) // test with 2 features
+tap.equal(getAt([1,1, 0,15340,15341,42,43,0,0], { numDatasets: 2, combinationMode: 'compare', breaks: undefined }, 0, 0), '1;43')
 tap.equal(getAt([1,1, 0,15340,15341,52,53,0,0], { numDatasets: 2 }, 0, 0), 2)
-tap.equal(getAt([1,1, 0,15340,15341,253,52,0,0], { numDatasets: 2, combinationMode: 'compare', breaks: [[0, 1, 2, 10, 15, 30], [0, 1, 2, 10, 15, 30]] }, 0, 0), 3)
-tap.equal(getAt([1,1, 0,15340,15341,52,253,0,0], { numDatasets: 2, combinationMode: 'compare', breaks: [[0, 1, 2, 10, 15, 30], [0, 1, 2, 10, 15, 30]] }, 0, 0), 10 + 3)
+tap.equal(getAt([1,1, 0,15340,15341,253,52,0,0], { numDatasets: 2, combinationMode: 'compare', breaks: [[0, 100, 200, 1000, 1500, 3000], [0, 100, 200, 1000, 1500, 3000]] }, 0, 0), 3)
+tap.equal(getAt([1,1, 0,15340,15341,52,253,0,0], { numDatasets: 2, combinationMode: 'compare', breaks: [[0, 100, 200, 1000, 1500, 3000], [0, 100, 200, 1000, 1500, 3000]] }, 0, 0), 10 + 3)
 
 //bivariate
 //  y: datasetB
@@ -71,8 +71,8 @@ tap.equal(getAt([1,1, 0,15340,15341,52,253,0,0], { numDatasets: 2, combinationMo
 //          +---+---+---+---+
 //          --------------> x: datasetA
 //
-const bivBreaks = [[0, 1, 5, 10], [0, 1, 5, 10]]
-tap.equal(getAt([1,1, 0,15340,15341,42,987,0,0], { numDatasets: 2, combinationMode: 'bivariate', breaks: undefined  }, 0, 0), '0.42;9.87')
+const bivBreaks = [[0, 100, 500, 1000], [0, 100, 500, 1000]]
+tap.equal(getAt([1,1, 0,15340,15341,42,987,0,0], { numDatasets: 2, combinationMode: 'bivariate', breaks: undefined  }, 0, 0), '42;987')
 tap.equal(getAt([1, 1, 0,15340,15341,0,0,0,0], { numDatasets: 2, combinationMode: 'bivariate', breaks: bivBreaks }, 0, 0), undefined)
 tap.equal(getAt([1,1, 0,15340,15341,99,1001,0,0], { numDatasets: 2, combinationMode: 'bivariate', breaks: bivBreaks  }, 0, 0), 13)
 tap.equal(getAt([1,1, 0,15340,15341,101,1001,0,0], { numDatasets: 2, combinationMode: 'bivariate', breaks: bivBreaks  }, 0, 0), 14)
@@ -81,17 +81,17 @@ tap.equal(getAt([1, 1, 0,15340,15341,9999,9999,0,0], { numDatasets: 2, combinati
 tap.equal(getAt([1, 1, 0,15340,15341,99,99,0,0], { numDatasets: 2, combinationMode: 'bivariate', breaks: bivBreaks }, 0, 0), 1)
 
 
-// cumulative 
-tap.equal(getAt([1,1, 0,15340,15341,100,200,300,0,0,0], { numDatasets: 3, combinationMode: 'cumulative'  }, 0, 0), '000100030006')
-tap.equal(getAt([1,1, 0,15340,15341,100,200,300,400,500,600], { numDatasets: 3, combinationMode: 'cumulative', delta: 2  }, 0, 0), '000500120021')
+// cumulative                                                                                                       AAAABBBBCCCC
+tap.equal(getAt([1,1, 0,15340,15341,100,200,300,0,0,0], { numDatasets: 3, combinationMode: 'cumulative'  }, 0, 0), '010003000600')
+tap.equal(getAt([1,1, 0,15340,15341,100,200,300,400,500,600], { numDatasets: 3, combinationMode: 'cumulative', delta: 2  }, 0, 0), '050012002100')
 
 
 //  Visibility
 const visibilityConfig = { numDatasets: 2, breaks: undefined, visible: [false, true] }
-tap.equal(getAt([1,1, 0,15340,15341,4300,4200,0,0], visibilityConfig, 0, 0), 42)
-tap.equal(getAt([1,1, 0,15340,15341,4300,4200,0,0], { ...visibilityConfig, combinationMode: 'compare' }, 0, 0), '1;42')
-tap.equal(getAt([1,1, 0,15340,15341,4300,4200,0,0], { ...visibilityConfig, combinationMode: 'bivariate' }, 0, 0), '0;42')
-tap.equal(getAt([1,1, 0,15340,15342,4300,4200,4300,4200,0,0], { ...visibilityConfig, combinationMode: 'compare', delta: 2 }, 0, 0), '1;84')
+tap.equal(getAt([1,1, 0,15340,15341,4300,4200,0,0], visibilityConfig, 0, 0), 4200)
+tap.equal(getAt([1,1, 0,15340,15341,4300,4200,0,0], { ...visibilityConfig, combinationMode: 'compare' }, 0, 0), '1;4200')
+tap.equal(getAt([1,1, 0,15340,15341,4300,4200,0,0], { ...visibilityConfig, combinationMode: 'bivariate' }, 0, 0), '0;4200')
+tap.equal(getAt([1,1, 0,15340,15342,4300,4200,4300,4200,0,0], { ...visibilityConfig, combinationMode: 'compare', delta: 2 }, 0, 0), '1;8400')
 
 
 // perf test

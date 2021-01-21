@@ -98,12 +98,21 @@ const writeValueToFeature = (quantizedTail, valueToWrite, feature) => {
 //  if first dataset selected     [   0, 10, 20, 30  ]
 //    index returned is:            0 | 1 | 2 | 3 | 4 |
 //                                    |   |   |   |   |
+//                                    |
+// Note: if value is EXACTLY 0, feature is entirely omitted
+//                                    |
+//                                    |
+//                                undefined
+//
 //  if 2nd dataset selected       [ -15, -5,  0,  5, 15]
 //    index returned is:            0 | 1 | 2 | 3 | 4 | 5
 //                                    |   |   |   |   |
-// Note: 0 is a special value, feature is entirely omitted
+//                                            |
+// Note: if value is EXACTLY 0, feature is entirely omitted
+//                                            |
 //                                            |
 //                                       undefined
+//
 const getBucketIndex = (breaks, value) => {
     let currentBucketIndex
     for (let bucketIndex = 0; bucketIndex < breaks.length + 1; bucketIndex++) {
@@ -305,7 +314,7 @@ const aggregate = (intArray, options) => {
                     const datasetIndex = featureBufferValuesPos % numDatasets
 
                     // Get real value
-                    const realValue = value / VALUE_MULTIPLIER
+                    const realValue = value
 
                     // collect value for this dataset
                     aggregating[datasetIndex].push(realValue);
