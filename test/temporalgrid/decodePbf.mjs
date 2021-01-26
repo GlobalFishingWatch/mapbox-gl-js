@@ -13,6 +13,6 @@ const decodeProto = data => {
   return intArray && intArray.data;
 };
 
-const data = fs.readFileSync('./test324.pbf')
+const data = fs.readFileSync('./test323.pbf')
 const int16ArrayBuffer = decodeProto(data);
 console.log(JSON.stringify(int16ArrayBuffer))

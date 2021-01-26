@@ -1,4 +1,11 @@
-export const BUFFER_HEADERS = ["cell", "min", "max"];
+const FEATURE_ROW_INDEX = 0
+const FEATURE_COL_INDEX = 1
+const FEATURE_CELLS_START_INDEX = 2
+
+const CELL_NUM_INDEX = 0
+const CELL_START_INDEX = 1
+const CELL_END_INDEX = 2
+const CELL_VALUES_START_INDEX = 3
 
 // Values from the 4wings API in intArray form can't be floats, so they are multiplied by a factor, here we get back to the original value
 const VALUE_MULTIPLIER = 100
@@ -88,7 +95,7 @@ const getFeature = ({ geomType, tileBBox, cell, numCols, numRows, id, addMeta })
 
 const writeValueToFeature = (quantizedTail, valueToWrite, feature) => {
     const propertiesKey = quantizedTail.toString()
-    feature.properties[propertiesKey] = valueToWrite
+    if (valueToWrite !== undefined) feature.properties[propertiesKey] = valueToWrite
 }
 
 
@@ -230,11 +237,9 @@ const aggregate = (intArray, options) => {
     let currentFeature;
     let currentFeatureInteractive;
     let currentFeatureCell;
-    let currentFeatureIntArrayPos; // intArray start index for the current feature
     let currentFeatureMinTimestamp;
     let currentFeatureMaxTimestamp;
     let currentFeatureTimestampDelta;
-    let featureBufferPos = 0; // position inside the feature
     let featureBufferValuesPos = 0;
     let head;
     let tail;
@@ -245,8 +250,40 @@ const aggregate = (intArray, options) => {
     let literalValuesStr = '['
     let cumulativeValuesPaddedStrings = []
 
-    const numRows = intArray[0]
-    const numCols = intArray[1]
+    const numRows = intArray[FEATURE_ROW_INDEX]
+    const numCols = intArray[FEATURE_COL_INDEX]
+
+    const featureIntArrays = []
+    let cellNum
+    let startOffset
+    let endOffset
+    let start
+    let end
+    let indexInCell = 0
+
+    for (let i = FEATURE_CELLS_START_INDEX; i < intArray.length; i++) {
+        const value = intArray[i];
+        if (indexInCell === CELL_NUM_INDEX) {
+            start = i
+            cellNum = value
+        }
+        else if (indexInCell === CELL_START_INDEX) {
+            startOffset = value
+        }
+        else if (indexInCell === CELL_END_INDEX) {
+            endOffset = value
+            end = start + CELL_VALUES_START_INDEX + (endOffset - startOffset + 1) * numDatasets
+        }
+        indexInCell++
+        if (i === end - 1) {
+            indexInCell = 0
+            const original = intArray.slice(start, end + 1)
+            const padded = new Array(delta * numDatasets).fill(0)
+            original[FEATURE_CELLS_START_INDEX] = endOffset + delta
+            const merged = original.concat(padded)
+            featureIntArrays.push(merged)
+        }
+    }
 
     // const t = performance.now()
     // console.log(x, y, z, intArray)
@@ -272,157 +309,144 @@ const aggregate = (intArray, options) => {
             }
         }
     } else {
-        for (let i = 2; i < intArray.length; i++) {
-            const value = intArray[i];
-            switch (featureBufferPos) {
-                // cell
-                case 0:
-                    currentFeatureIntArrayPos = i
-                    currentFeatureCell = value;
-                    const uniqueId = generateUniqueId(x, y, currentFeatureCell)
-                    const featureParams = {
-                        geomType,
-                        tileBBox,
-                        cell: currentFeatureCell,
-                        numCols,
-                        numRows,
-                        id: uniqueId,
-                    }
-                    currentFeature = getFeature(featureParams)
-                    if (interactive) {
-                        currentFeatureInteractive = getFeature({ ...featureParams, addMeta: true })
-                    }
-                    break;
-                // minTs
-                case 1:
-                    currentFeatureMinTimestamp = value;
-                    head = currentFeatureMinTimestamp;
-                    break;
-                // maxTs
-                case 2:
-                    currentFeatureMaxTimestamp = value;
-                    currentFeatureTimestampDelta =
-                        currentFeatureMaxTimestamp - currentFeatureMinTimestamp;
-                    break;
-                // actual value
-                default:
-                    // when we are looking at ts 0 and delta is 10, we are in fact looking at the aggregation of day -9
-                    tail = head - delta + 1;
-
-                    // gets index of dataset, knowing that after headers values go
-                    // dataset1, dataset2, dataset1, dataset2, ...
-                    const datasetIndex = featureBufferValuesPos % numDatasets
-
-                    // Get real value
-                    const realValue = value
-
-                    // collect value for this dataset
-                    aggregating[datasetIndex].push(realValue);
-
-                    let tailValue = 0;
-                    if (tail > currentFeatureMinTimestamp) {
-                        tailValue = aggregating[datasetIndex].shift();
-                    }
-
-                    // collect "working" value, ie value at head by substracting tail value
-                    let realValueAtFrameForDataset = 0
-                    if (visible[datasetIndex]) {
-                        realValueAtFrameForDataset = currentAggregatedValues[datasetIndex] + realValue - tailValue;
-                    }
-                    currentAggregatedValues[datasetIndex] = realValueAtFrameForDataset
-
-                    // Compute mode-specific values
-                    if (combinationMode === 'compare') {
-                        if (realValueAtFrameForDataset > datasetsHighestRealValue) {
-                            datasetsHighestRealValue = realValueAtFrameForDataset
-                            datasetsHighestRealValueIndex = datasetIndex
-                        }
-                    }
-                    if (combinationMode === 'add' || combinationMode === 'cumulative') {
-                        realValuesSum += realValueAtFrameForDataset
-                    }
-                    if (combinationMode === 'cumulative') {
-                        const cumulativeValuePaddedString = Math.round(realValuesSum).toString().padStart(6, '0')
-                        cumulativeValuesPaddedStrings.push(cumulativeValuePaddedString)
-                    }
-                    if (combinationMode === 'literal') {
-                        // literalValuesStr += Math.floor(realValueAtFrameForDataset * 100) / 100
-                        // Just rounding is faster - revise if decimals are needed
-                        // Use ceil to avoid values being 'mute' when very close to zero
-                        // Update: use .round to avoid discrepancies betwen interaction and total ammount
-                        literalValuesStr += Math.round(realValueAtFrameForDataset)
-                        if (datasetIndex < numDatasets - 1) {
-                            literalValuesStr += ','
-                        }
-                    }
-
-                    const quantizedTail = tail - quantizeOffset;
-
-                    if (quantizedTail >= 0 && datasetIndex === numDatasets - 1) {
-                        let finalValue
-
-                        if (combinationMode === 'literal') {
-                            literalValuesStr += ']'
-                        }
-                        // TODO add 'single' mode
-                        if (combinationMode === 'compare') {
-                            finalValue = getCompareValue(datasetsHighestRealValue, datasetsHighestRealValueIndex, breaks)
-                        }
-                        else if (combinationMode === 'add') {
-                            finalValue = getAddValue(realValuesSum, breaks)
-                        }
-                        else if (combinationMode === 'bivariate') {
-                            finalValue = getBivariateValue(currentAggregatedValues, breaks)
-                        }
-                        else if (combinationMode === 'literal') {
-                            finalValue = literalValuesStr
-                        }
-                        else if (combinationMode === 'cumulative') {
-                            finalValue = getCumulativeValue(realValuesSum, cumulativeValuesPaddedStrings)
-                        }
-                        writeValueToFeature(quantizedTail, finalValue, currentFeature)
-                    }
-
-                    if (datasetIndex === numDatasets - 1) {
-                        // When all dataset values have been collected for this frame, we can move to next frame
-                        head++;
-
-                        // Reset mode-specific values when last dataset
-                        datasetsHighestRealValue = Number.NEGATIVE_INFINITY
-                        realValuesSum = 0
-                        cumulativeValuesPaddedStrings = []
-                        literalValuesStr = '['
-                    }
-
-                    featureBufferValuesPos++
+        for (let f = 0; f < featureIntArrays.length; f++) {
+            const featureIntArray = featureIntArrays[f]
+            currentFeatureCell = featureIntArray[CELL_NUM_INDEX];
+            currentFeatureMinTimestamp = featureIntArray[CELL_START_INDEX];
+            currentFeatureMaxTimestamp = featureIntArray[CELL_END_INDEX];
+            head = currentFeatureMinTimestamp;
+            currentFeatureTimestampDelta = currentFeatureMaxTimestamp - currentFeatureMinTimestamp;
+            const uniqueId = generateUniqueId(x, y, currentFeatureCell)
+            const featureParams = {
+                geomType,
+                tileBBox,
+                cell: currentFeatureCell,
+                numCols,
+                numRows,
+                id: uniqueId,
+                addMeta: true
             }
-            featureBufferPos++;
+            currentFeature = getFeature(featureParams)
+            if (interactive) {
+                currentFeatureInteractive = getFeature({ ...featureParams, addMeta: true })
+            }
 
-            const isEndOfFeature =
-                ((featureBufferPos - BUFFER_HEADERS.length) / numDatasets) - 1 ===
-                currentFeatureTimestampDelta;
+            for (let i = 3; i < featureIntArray.length; i++) {
+                const value = featureIntArray[i];
 
-            if (isEndOfFeature) {
-                features.push(currentFeature);
-                if (interactive) {
-                    currentFeatureInteractive.properties.rawValues = intArray.slice(currentFeatureIntArrayPos + 1, i + 1).join(',')
-                    featuresInteractive.push(currentFeatureInteractive)
+                // when we are looking at ts 0 and delta is 10, we are in fact looking at the aggregation of day -9
+                tail = head - delta + 1;
+
+                // gets index of dataset, knowing that after headers values go
+                // dataset1, dataset2, dataset1, dataset2, ...
+                const datasetIndex = featureBufferValuesPos % numDatasets
+
+                // collect value for this dataset
+                aggregating[datasetIndex].push(value);
+
+                let tailValue = 0;
+                if (tail > currentFeatureMinTimestamp) {
+                    tailValue = aggregating[datasetIndex].shift();
                 }
 
-                currentFeatureTimestampDelta = 0
-                featureBufferPos = 0;
-                featureBufferValuesPos = 0;
+                // collect "working" value, ie value at head by substracting tail value
+                let realValueAtFrameForDataset = 0
+                if (visible[datasetIndex]) {
+                    realValueAtFrameForDataset = currentAggregatedValues[datasetIndex] + value - tailValue;
+                }
+                currentAggregatedValues[datasetIndex] = realValueAtFrameForDataset
 
-                datasetsHighestRealValue = Number.NEGATIVE_INFINITY
-                realValuesSum = 0
-                cumulativeValuesPaddedStrings = []
+                // Compute mode-specific values
+                if (combinationMode === 'compare') {
+                    if (realValueAtFrameForDataset > datasetsHighestRealValue) {
+                        datasetsHighestRealValue = realValueAtFrameForDataset
+                        datasetsHighestRealValueIndex = datasetIndex
+                    }
+                }
+                if (combinationMode === 'add' || combinationMode === 'cumulative') {
+                    realValuesSum += realValueAtFrameForDataset
+                }
+                if (combinationMode === 'cumulative') {
+                    const cumulativeValuePaddedString = Math.round(realValuesSum).toString().padStart(6, '0')
+                    cumulativeValuesPaddedStrings.push(cumulativeValuePaddedString)
+                }
+                if (combinationMode === 'literal') {
+                    // literalValuesStr += Math.floor(realValueAtFrameForDataset * 100) / 100
+                    // Just rounding is faster - revise if decimals are needed
+                    // Use ceil to avoid values being 'mute' when very close to zero
+                    // Update: use .round to avoid discrepancies betwen interaction and total ammount
+                    literalValuesStr += Math.round(realValueAtFrameForDataset)
+                    if (datasetIndex < numDatasets - 1) {
+                        literalValuesStr += ','
+                    }
+                }
 
-                aggregating = Array(numDatasets).fill([]);
-                currentAggregatedValues = Array(numDatasets).fill(0);
+                const quantizedTail = tail - quantizeOffset;
 
-                currentFeatureIndex++;
-                continue;
+                if (currentFeature.properties._col === 48 && currentFeature.properties._row === 70 && datasetIndex === numDatasets - 1) {
+                    console.log(featureIntArray)
+                    console.log(value, realValueAtFrameForDataset, datasetsHighestRealValue)
+                    console.log(head, tail, quantizedTail, value, realValueAtFrameForDataset)
+                }
+                if (quantizedTail >= 0 && datasetIndex === numDatasets - 1) {
+                    let finalValue
+
+                    if (combinationMode === 'literal') {
+                        literalValuesStr += ']'
+                    }
+                    // TODO add 'single' mode
+                    if (combinationMode === 'compare') {
+                        finalValue = getCompareValue(datasetsHighestRealValue, datasetsHighestRealValueIndex, breaks)
+
+                    }
+                    else if (combinationMode === 'add') {
+                        finalValue = getAddValue(realValuesSum, breaks)
+                    }
+                    else if (combinationMode === 'bivariate') {
+                        finalValue = getBivariateValue(currentAggregatedValues, breaks)
+                    }
+                    else if (combinationMode === 'literal') {
+                        finalValue = literalValuesStr
+                    }
+                    else if (combinationMode === 'cumulative') {
+                        finalValue = getCumulativeValue(realValuesSum, cumulativeValuesPaddedStrings)
+                    }
+                    // console.log(quantizedTail, finalValue, currentFeature)
+                    writeValueToFeature(quantizedTail, finalValue, currentFeature)
+                }
+
+                if (datasetIndex === numDatasets - 1) {
+                    // When all dataset values have been collected for this frame, we can move to next frame
+                    head++;
+
+                    // Reset mode-specific values when last dataset
+                    datasetsHighestRealValue = Number.NEGATIVE_INFINITY
+                    realValuesSum = 0
+                    cumulativeValuesPaddedStrings = []
+                    literalValuesStr = '['
+                }
+
+                featureBufferValuesPos++
             }
+
+            features.push(currentFeature);
+            if (interactive) {
+                currentFeatureInteractive.properties.rawValues = featureIntArray
+                featuresInteractive.push(currentFeatureInteractive)
+            }
+
+            currentFeatureTimestampDelta = 0
+            featureBufferValuesPos = 0;
+
+            datasetsHighestRealValue = Number.NEGATIVE_INFINITY
+            realValuesSum = 0
+            cumulativeValuesPaddedStrings = []
+
+            aggregating = Array(numDatasets).fill([]);
+            currentAggregatedValues = Array(numDatasets).fill(0);
+
+            currentFeatureIndex++;
+            continue;
         }
     }
     // console.log(performance.now()- t)
