@@ -8,15 +8,6 @@ import { extend } from "../util/util";
 import aggregate from "../util/aggregate.mjs";
 import tilebelt from "@mapbox/tilebelt";
 
-
-const isoToDate = iso => {
-    return new Date(iso).getTime();
-};
-
-const isoToDay = iso => {
-    return isoToDate(iso) / 1000 / 60 / 60 / 24;
-};
-
 const getAggregationParams = params => {
     const url = new URL(params.request.url);
     const { x, y, z } = params.tileID.canonical;
