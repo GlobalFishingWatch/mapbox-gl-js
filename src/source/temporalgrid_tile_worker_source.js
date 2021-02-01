@@ -5,7 +5,7 @@ import MultiSourceLayerGeoJSONWrapper from "./multi_source_geojson_wrapper";
 import VectorTileWorkerSource from "./vector_tile_worker_source";
 import { getArrayBuffer } from "../util/ajax";
 import { extend } from "../util/util";
-import aggregate from "../util/aggregate.mjs";
+import { aggregateTile } from '@globalfishingwatch/fourwings-aggregate';
 import tilebelt from "@mapbox/tilebelt";
 
 const getAggregationParams = params => {
@@ -99,7 +99,7 @@ const getTile = (data, options) => {
     const {x, y, z} = options;
     const tileBBox = tilebelt.tileToBBOX([x, y, z]);
     const int16ArrayBuffer = decodeProto(data);
-    const aggregated = aggregate(int16ArrayBuffer, { ...options, tileBBox });
+    const aggregated = aggregateTile(int16ArrayBuffer, { ...options, tileBBox });
 
     const mainTile = geoJSONtoVectorTile(aggregated.main, options)
     const sourceLayers = {

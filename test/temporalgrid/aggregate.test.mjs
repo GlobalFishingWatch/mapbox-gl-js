@@ -1,7 +1,7 @@
-import aggregate from "../../src/util/aggregate.mjs";
 import tap from 'tap'
 import bigtile from './bigtile.mjs'
 import { performance } from 'perf_hooks';
+import { aggregateTile, aggregateCell } from '@globalfishingwatch/fourwings-aggregate';
 
 const BASE_CONFIG = {
   breaks: [[0, 100, 500, 1000, 1500, 3000]],
@@ -19,7 +19,7 @@ const BASE_CONFIG = {
   visible: [true, true, true]
 }
 
-const aggregateWith = (intArray, configOverrides) => aggregate(intArray, { ...BASE_CONFIG, ...configOverrides }).main
+const aggregateWith = (intArray, configOverrides) => aggregateTile(intArray, { ...BASE_CONFIG, ...configOverrides }).main
 const getAt = (intArray, configOverrides, featureIndex, frame, expect) => {
   const agg = aggregateWith(
     intArray,
@@ -122,7 +122,7 @@ tap.equal(getAt([1,1, 0,15340,15342,4300,4200,4300,4200,0,0], { ...visibilityCon
 let sum = 0
 for (var i = 0; i< 20; i++) {
   const t = performance.now()
-  const geojson = aggregate(bigtile,
+  const geojson = aggregateTile(bigtile,
     {
       "x":7,
       "y":5,

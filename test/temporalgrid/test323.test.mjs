@@ -1,6 +1,6 @@
-import aggregate from "../../src/util/aggregate.mjs";
 import tap from 'tap'
 import tile from './test323.mjs'
+import { aggregateTile, aggregateCell } from '@globalfishingwatch/fourwings-aggregate';
 
 const FRAME = 5
 const BASE_CONFIG = {
@@ -23,8 +23,20 @@ const BASE_CONFIG = {
 }
 
 
-const agg = aggregate(tile, BASE_CONFIG)
-const aggMain = agg.main
+const agg = aggregateTile(tile, BASE_CONFIG)
 
-const feat = aggMain.features.find(f => f.properties._col === 48 && f.properties._row === 70)
-console.log(feat)
+const featMain = agg.main.features.find(f => f.properties._col === 48 && f.properties._row === 70)
+const featInteractive = agg.interactive.features.find(f => f.properties._col === 48 && f.properties._row === 70)
+console.log('main', featMain)
+console.log('interactive', featInteractive.properties.rawValues)
+
+const aggregatedByCell = aggregateCell(
+  JSON.stringify(featInteractive.properties.rawValues),
+  FRAME,
+  BASE_CONFIG.delta,
+  BASE_CONFIG.quantizeOffset,
+  BASE_CONFIG.numDatasets,
+  true
+)
+
+console.log(aggregatedByCell)
