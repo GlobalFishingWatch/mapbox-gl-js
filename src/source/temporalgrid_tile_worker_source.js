@@ -100,6 +100,7 @@ const getTile = (data, options) => {
     const tileBBox = tilebelt.tileToBBOX([x, y, z]);
     const int16ArrayBuffer = decodeProto(data);
     const aggregated = aggregateTile(int16ArrayBuffer, { ...options, tileBBox });
+    console.log(aggregated)
 
     const mainTile = geoJSONtoVectorTile(aggregated.main, options)
     const sourceLayers = {

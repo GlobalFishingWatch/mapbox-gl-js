@@ -57,6 +57,7 @@ class FillBucket implements Bucket {
     uploaded: boolean;
 
     constructor(options: BucketParameters<FillStyleLayer>) {
+        // console.log(options)
         this.zoom = options.zoom;
         this.overscaling = options.overscaling;
         this.layers = options.layers;
@@ -78,9 +79,11 @@ class FillBucket implements Bucket {
         this.hasPattern = hasPattern('fill', this.layers, options);
         const fillSortKey = this.layers[0].layout.get('fill-sort-key');
         const bucketFeatures = [];
+        // console.log(features)
 
         for (const {feature, id, index, sourceLayerIndex} of features) {
             const needGeometry = this.layers[0]._featureFilter.needGeometry;
+
             const evaluationFeature = {type: feature.type,
                 id,
                 properties: feature.properties,

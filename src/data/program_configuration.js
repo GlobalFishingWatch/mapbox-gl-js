@@ -161,6 +161,7 @@ class SourceExpressionBinder implements AttributeBinder {
 
     constructor(expression: SourceExpression, names: Array<string>, type: string, PaintVertexArray: Class<StructArray>) {
         this.expression = expression;
+        this.frame = parseInt(expression._styleExpression.expression.input.args[0].args[0].args[0].value)   
         this.type = type;
         this.maxValue = 0;
         this.paintVertexAttributes = names.map((name) => ({
@@ -174,14 +175,32 @@ class SourceExpressionBinder implements AttributeBinder {
 
     populatePaintArray(newLength: number, feature: Feature, imagePositions: {[_: string]: ImagePosition}, canonical?: CanonicalTileID, formattedSection?: FormattedSection) {
         const start = this.paintVertexArray.length;
-        const value = this.expression.evaluate(new EvaluationParameters(0), feature, {}, canonical, [], formattedSection);
+        // const value = this.expression.evaluate(new EvaluationParameters(0), feature, {}, canonical, [], formattedSection);
+        // const value = feature.properties.frames[this.frame] 
+
+        const bucket = feature.properties.values[this.frame - 1500]
+        const color = bucket || {r:1,g:0,b:1,a:1}
         this.paintVertexArray.resize(newLength);
-        this._setPaintValue(start, newLength, value);
+        this._setPaintValue(start, newLength, color);
     }
 
     updatePaintArray(start: number, end: number, feature: Feature, featureState: FeatureState) {
-        const value = this.expression.evaluate({zoom: 0}, feature, featureState);
-        this._setPaintValue(start, end, value);
+        // const BUCKETS = [
+        //     { r: 0, g: 0, b: 0, a: 0},
+        //     { r: 1, g: .1, b: 0, a: 1},
+        //     { r: 1, g: .2, b: 0, a: 1},
+        //     { r: 1, g: .3, b: 0, a: 1},
+        //     { r: 1, g: .4, b: 0, a: 1},
+        //     { r: 1, g: .5, b: 0, a: 1},
+        //     { r: 1, g: .6, b: 0, a: 1},
+        //     { r: 1, g: .7, b: 0, a: 1},
+        //     { r: 1, g: .8, b: 0, a: 1},
+        //     { r: 1, g: .9, b: 0, a: 1},
+        // ]
+
+        // const bucket = feature.properties.values[this.frame - 1500]
+        // const color = bucket ? BUCKETS[bucket] : {r:1,g:0,b:1,a:1}
+        // this._setPaintValue(start, end, color);
     }
 
     _setPaintValue(start, end, value) {
@@ -402,11 +421,12 @@ export default class ProgramConfiguration {
     _buffers: Array<VertexBuffer>;
 
     constructor(layer: TypedStyleLayer, zoom: number, filterProperties: (_: string) => boolean) {
+        // console.log(layer)
         this.binders = {};
         this._buffers = [];
 
         const keys = [];
-
+        debugger
         for (const property in layer.paint._values) {
             if (!filterProperties(property)) continue;
             const value = layer.paint.get(property);
@@ -419,7 +439,7 @@ export default class ProgramConfiguration {
             const useIntegerZoom = value.property.useIntegerZoom;
             const propType = value.property.specification['property-type'];
             const isCrossFaded = propType === 'cross-faded' || propType === 'cross-faded-data-driven';
-
+            
             if (expression.kind === 'constant') {
                 this.binders[property] = isCrossFaded ?
                     new CrossFadedConstantBinder(expression.value, names) :
@@ -452,7 +472,7 @@ export default class ProgramConfiguration {
         for (const property in this.binders) {
             const binder = this.binders[property];
             if (binder instanceof SourceExpressionBinder || binder instanceof CompositeExpressionBinder || binder instanceof CrossFadedCompositeBinder)
-                (binder: AttributeBinder).populatePaintArray(newLength, feature, imagePositions, canonical, formattedSection);
+                (binder: AttributeBinder).populatePaintArray(newLength, feature, imagePositions, canonical, formattedSection, this.frame);
         }
     }
     setConstantPatternPositions(posTo: ImagePosition, posFrom: ImagePosition) {
