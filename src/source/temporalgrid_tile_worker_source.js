@@ -25,21 +25,21 @@ const getAggregationParams = params => {
         geomType: url.searchParams.get("geomType") || "point",
         delta: parseInt(url.searchParams.get("delta") || "10"),
     };
-    aggregationParams.numDatasets = parseInt(url.searchParams.get("numDatasets")) || 1
+    aggregationParams.sublayerCount = parseInt(url.searchParams.get("sublayerCount")) || 1
 
     if (url.searchParams.get("interval")) {
         aggregationParams.interval = url.searchParams.get("interval")
     }
-    if (url.searchParams.get("breaks")) {
-        aggregationParams.breaks = JSON.parse(url.searchParams.get("breaks"))
+    if (url.searchParams.get("sublayerBreaks")) {
+        aggregationParams.sublayerBreaks = JSON.parse(url.searchParams.get("sublayerBreaks"))
     }
-    if (url.searchParams.get("combinationMode")) {
-        aggregationParams.combinationMode = url.searchParams.get("combinationMode")
+    if (url.searchParams.get("sublayerCombinationMode")) {
+        aggregationParams.sublayerCombinationMode = url.searchParams.get("sublayerCombinationMode")
     }
-    if (url.searchParams.get("visible")) {
-        aggregationParams.visible = JSON.parse(url.searchParams.get('visible'))
+    if (url.searchParams.get("sublayerVisibility")) {
+        aggregationParams.sublayerVisibility = JSON.parse(url.searchParams.get('sublayerVisibility'))
     } else {
-        aggregationParams.visible = (new Array(aggregationParams.numDatasets)).fill(true)
+        aggregationParams.sublayerVisibility = (new Array(aggregationParams.numDatasets)).fill(true)
     }
     return aggregationParams
 };
