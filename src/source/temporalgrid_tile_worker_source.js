@@ -30,11 +30,14 @@ const getAggregationParams = params => {
     if (url.searchParams.get("interval")) {
         aggregationParams.interval = url.searchParams.get("interval")
     }
-    if (url.searchParams.get("sublayerBreaks")) {
-        aggregationParams.sublayerBreaks = JSON.parse(url.searchParams.get("sublayerBreaks"))
+    if (url.searchParams.get("aggregationOperation")) {
+        aggregationParams.aggregationOperation = url.searchParams.get("aggregationOperation")
     }
     if (url.searchParams.get("sublayerCombinationMode")) {
         aggregationParams.sublayerCombinationMode = url.searchParams.get("sublayerCombinationMode")
+    }
+    if (url.searchParams.get("sublayerBreaks")) {
+        aggregationParams.sublayerBreaks = JSON.parse(url.searchParams.get("sublayerBreaks"))
     }
     if (url.searchParams.get("sublayerVisibility")) {
         aggregationParams.sublayerVisibility = JSON.parse(url.searchParams.get('sublayerVisibility'))
@@ -100,7 +103,7 @@ const getTile = (data, options) => {
     const tileBBox = tilebelt.tileToBBOX([x, y, z]);
     const int16ArrayBuffer = decodeProto(data);
     const aggregated = aggregateTile(int16ArrayBuffer, { ...options, tileBBox });
-
+    console.log(aggregated.main)
     const mainTile = geoJSONtoVectorTile(aggregated.main, options)
     const sourceLayers = {
         temporalgrid: mainTile
