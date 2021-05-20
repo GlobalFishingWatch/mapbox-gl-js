@@ -8,74 +8,87 @@ import { extend } from "../util/util";
 import { aggregateTile } from '@globalfishingwatch/fourwings-aggregate';
 import tilebelt from "@mapbox/tilebelt";
 
-const getAggregationParams = params => {
-    const url = new URL(params.request.url);
-    const { x, y, z } = params.tileID.canonical;
-
-    const quantizeOffset = parseInt(
-        url.searchParams.get("quantizeOffset") || "0"
-    );
-    const singleFrame = url.searchParams.get("singleFrame") === "true";
-    const interactive = url.searchParams.get("interactive") === "true";
-    const aggregationParams =  {
-        x, y, z,
-        singleFrame,
-        interactive,
-        quantizeOffset,
-        geomType: url.searchParams.get("geomType") || "point",
-        delta: parseInt(url.searchParams.get("delta") || "10"),
+class SearchParams {
+    constructor(query) {
+        this.query = query;
+    }
+    getSearchObject () {
+        const { query } = this;
+        return query ?
+        (/^[?#]/.test(query) ? query.slice(1) : query)
+            .split("&")
+            .reduce((params, param) => {
+                let [key, value] = param.split("=");
+                params[key] = value
+                ? decodeURIComponent(value.replace(/\+/g, " "))
+                : "";
+                return params;
+            }, {})
+        : {};
     };
-    aggregationParams.sublayerCount = parseInt(url.searchParams.get("sublayerCount")) || 1
+    get (param) {
+        const searchParams = this.getSearchObject();
+        return searchParams[param];
+    };
+}
 
-    if (url.searchParams.get("interval")) {
-        aggregationParams.interval = url.searchParams.get("interval")
-    }
-    if (url.searchParams.get("aggregationOperation")) {
-        aggregationParams.aggregationOperation = url.searchParams.get("aggregationOperation")
-    }
-    if (url.searchParams.get("sublayerCombinationMode")) {
-        aggregationParams.sublayerCombinationMode = url.searchParams.get("sublayerCombinationMode")
-    }
-    if (url.searchParams.get("sublayerBreaks")) {
-        aggregationParams.sublayerBreaks = JSON.parse(url.searchParams.get("sublayerBreaks"))
-    }
-    if (url.searchParams.get("sublayerVisibility")) {
-        aggregationParams.sublayerVisibility = JSON.parse(url.searchParams.get('sublayerVisibility'))
+
+const getAggregationParams = (params) => {
+    const url = new URL(params.request.url);
+    const searchParams = url.searchParams
+    let finalParams
+    if (false || searchParams) {
+        finalParams = Object.fromEntries(searchParams)
     } else {
-        aggregationParams.sublayerVisibility = (new Array(aggregationParams.numDatasets)).fill(true)
+        finalParams = new SearchParams(params.request.url).getSearchObject()
     }
-    return aggregationParams
+    const { x, y, z } = params.tileID.canonical;
+    const { interval, aggregationOperation, sublayerCombinationMode } = finalParams
+
+    const aggregationParams = {
+        x, y, z,
+        interval,
+        aggregationOperation,
+        sublayerCombinationMode,
+        singleFrame: finalParams.singleFrame === "true",
+        interactive: finalParams.interactive === "true",
+        quantizeOffset: parseInt(finalParams.quantizeOffset || "0"),
+        geomType: finalParams.geomType || "point",
+        delta: parseInt(finalParams.delta) || "10",
+        sublayerCount: parseInt(finalParams.sublayerCount) || 1,
+        sublayerBreaks: finalParams.sublayerBreaks ? JSON.parse(finalParams.sublayerBreaks) : null,
+        sublayerVisibility: finalParams.sublayerVisibility ? JSON.parse(finalParams.sublayerVisibility) : (new Array(finalParams.sublayerCount)).fill(true),
+    };
+    return Object.fromEntries(Object.entries(aggregationParams).filter(([key, value]) => {
+        return value !== undefined && value !== null
+    }))
 };
 
 const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
-    const originalUrl = new URL(originalUrlString);
-
-    const finalUrl = new URL(originalUrl.origin + originalUrl.pathname)
-
-    // We want proxy active as default when api tiles auth is required
-    const proxy = originalUrl.searchParams.get("proxy") !== "false";
-    finalUrl.searchParams.append('proxy', proxy);
-    finalUrl.searchParams.append('format', 'intArray');
-    finalUrl.searchParams.append('temporal-aggregation', singleFrame);
-
-    if (interval) {
-        finalUrl.searchParams.append('interval', interval);
-    }
-    const dateRange = originalUrl.searchParams.get("date-range")
-    if (dateRange) {
-        finalUrl.searchParams.append('date-range', decodeURI(dateRange))
+    const originalUrl = new URL(originalUrlString)
+    let searchParams = originalUrl.searchParams
+    if (true || !searchParams) {
+        searchParams = new SearchParams(originalUrlString)
     }
 
-    let finalUrlStr = finalUrl.toString()
-    const datasets = originalUrl.searchParams.get("datasets")
-    if (datasets) {
-        finalUrlStr = `${finalUrlStr}&${datasets}`
+    const finalUrlParams = {
+        // We want proxy active as default when api tiles auth is required
+        proxy: searchParams.get("proxy") !== "false",
+        format: 'intArray',
+        'temporal-aggregation': singleFrame === true,
+        interval,
+        'date-range': decodeURI(searchParams.get("date-range")),
     }
-    const filters = originalUrl.searchParams.get("filters")
-    if (filters) {
-        finalUrlStr = `${finalUrlStr}&${filters}`
-    }
-
+    const finalUrlParamsArr = Object.entries(finalUrlParams)
+        .filter(([key, value]) => {
+            return value !== undefined && value !== null
+        })
+        .map(([key, value]) => {
+            return `${key}=${value}`
+        })
+    finalUrlParamsArr.push(searchParams.get("datasets"))
+    finalUrlParamsArr.push(searchParams.get("filters"))
+    const finalUrlStr = `${originalUrl.origin}${originalUrl.pathname}?${finalUrlParamsArr.join('&')}`
     return decodeURI(finalUrlStr);
 };
 
