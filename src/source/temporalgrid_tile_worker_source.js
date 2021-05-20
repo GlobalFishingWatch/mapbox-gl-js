@@ -37,7 +37,7 @@ const getAggregationParams = (params) => {
     const url = new URL(params.request.url);
     const searchParams = url.searchParams
     let finalParams
-    if (false || searchParams) {
+    if (searchParams) {
         finalParams = Object.fromEntries(searchParams)
     } else {
         finalParams = new SearchParams(params.request.url).getSearchObject()
@@ -67,7 +67,7 @@ const getAggregationParams = (params) => {
 const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
     const originalUrl = new URL(originalUrlString)
     let searchParams = originalUrl.searchParams
-    if (true || !searchParams) {
+    if (!searchParams) {
         searchParams = new SearchParams(originalUrlString)
     }
 
