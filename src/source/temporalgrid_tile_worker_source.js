@@ -35,81 +35,60 @@ class SearchParams {
 
 const getAggregationParams = (params) => {
     const url = new URL(params.request.url);
-    if (!url.searchParams) {
-        url.searchParams = new SearchParams(params.request.url)
+    const searchParams = url.searchParams
+    let finalParams
+    if (false || searchParams) {
+        finalParams = Object.fromEntries(searchParams)
+    } else {
+        finalParams = new SearchParams(params.request.url).getSearchObject()
     }
     const { x, y, z } = params.tileID.canonical;
+    const { interval, aggregationOperation, sublayerCombinationMode } = finalParams
 
-    const quantizeOffset = parseInt(
-        url.searchParams.get("quantizeOffset") || url.searchParams["quantizeOffset"] || "0"
-    );
-    const singleFrame = url.searchParams.get("singleFrame") === "true" ;
-    const interactive = url.searchParams.get("interactive") === "true";
-    const aggregationParams =  {
+    const aggregationParams = {
         x, y, z,
-        singleFrame,
-        interactive,
-        quantizeOffset,
-        geomType: url.searchParams.get("geomType") || "point",
-        delta: parseInt(url.searchParams.get("delta") || "10"),
+        interval,
+        aggregationOperation,
+        sublayerCombinationMode,
+        singleFrame: finalParams.singleFrame === "true",
+        interactive: finalParams.interactive === "true",
+        quantizeOffset: parseInt(finalParams.quantizeOffset || "0"),
+        geomType: finalParams.geomType || "point",
+        delta: parseInt(finalParams.delta) || "10",
+        sublayerCount: parseInt(finalParams.sublayerCount) || 1,
+        sublayerBreaks: finalParams.sublayerBreaks ? JSON.parse(finalParams.sublayerBreaks) : null,
+        sublayerVisibility: finalParams.sublayerVisibility ? JSON.parse(finalParams.sublayerVisibility) : (new Array(finalParams.sublayerCount)).fill(true),
     };
-    aggregationParams.sublayerCount = parseInt(url.searchParams.get("sublayerCount")) || 1
-
-    if (url.searchParams.get("interval")) {
-        aggregationParams.interval = url.searchParams.get("interval")
-    }
-    if (url.searchParams.get("aggregationOperation")) {
-        aggregationParams.aggregationOperation = url.searchParams.get("aggregationOperation")
-    }
-    if (url.searchParams.get("sublayerCombinationMode")) {
-        aggregationParams.sublayerCombinationMode = url.searchParams.get("sublayerCombinationMode")
-    }
-    if (url.searchParams.get("sublayerBreaks")) {
-        aggregationParams.sublayerBreaks = JSON.parse(url.searchParams.get("sublayerBreaks"))
-    }
-    if (url.searchParams.get("sublayerVisibility")) {
-        aggregationParams.sublayerVisibility = JSON.parse(url.searchParams.get('sublayerVisibility'))
-    } else {
-        aggregationParams.sublayerVisibility = (new Array(aggregationParams.numDatasets)).fill(true)
-    }
-    return aggregationParams
+    return Object.fromEntries(Object.entries(aggregationParams).filter(([key, value]) => {
+        return value !== undefined && value !== null
+    }))
 };
 
 const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
-    const originalUrl = new URL(originalUrlString);
-    if (!originalUrl.searchParams) {
-        originalUrl.searchParams = new SearchParams(originalUrlString)
+    const originalUrl = new URL(originalUrlString)
+    let searchParams = originalUrl.searchParams
+    if (true || !searchParams) {
+        searchParams = new SearchParams(originalUrlString)
     }
 
-    const finalUrl = new URL(originalUrl.origin + originalUrl.pathname)
-    if (!finalUrl.searchParams) {
-        finalUrl.searchParams = new SearchParams(originalUrl.origin + originalUrl.pathname)
+    const finalUrlParams = {
+        // We want proxy active as default when api tiles auth is required
+        proxy: searchParams.get("proxy") !== "false",
+        format: 'intArray',
+        'temporal-aggregation': singleFrame === true,
+        interval,
+        'date-range': decodeURI(searchParams.get("date-range")),
     }
-
-    let finalUrlStr = finalUrl.toString()
-
-    // We want proxy active as default when api tiles auth is required
-    const proxy = originalUrl.searchParams.get("proxy") !== "false";
-    finalUrlStr = `${finalUrlStr}?proxy=${proxy}`
-    finalUrlStr = `${finalUrlStr}&format=intArray`
-    finalUrlStr = `${finalUrlStr}&temporal-aggregation=${singleFrame}`
-
-    if (interval) {
-        finalUrlStr = `${finalUrlStr}&interval=${interval}`
-    }
-    const dateRange = originalUrl.searchParams.get("date-range")
-    if (dateRange) {
-        finalUrlStr = `${finalUrlStr}&date-range=${decodeURI(dateRange)}`
-    }
-    const datasets = originalUrl.searchParams.get("datasets")
-    if (datasets) {
-        finalUrlStr = `${finalUrlStr}&${datasets}`
-    }
-    const filters = originalUrl.searchParams.get("filters")
-    if (filters) {
-        finalUrlStr = `${finalUrlStr}&${filters}`
-    }
-
+    const finalUrlParamsArr = Object.entries(finalUrlParams)
+        .filter(([key, value]) => {
+            return value !== undefined && value !== null
+        })
+        .map(([key, value]) => {
+            return `${key}=${value}`
+        })
+    finalUrlParamsArr.push(searchParams.get("datasets"))
+    finalUrlParamsArr.push(searchParams.get("filters"))
+    const finalUrlStr = `${originalUrl.origin}${originalUrl.pathname}?${finalUrlParamsArr.join('&')}`
     return decodeURI(finalUrlStr);
 };
 
