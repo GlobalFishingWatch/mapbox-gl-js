@@ -8,14 +8,42 @@ import { extend } from "../util/util";
 import { aggregateTile } from '@globalfishingwatch/fourwings-aggregate';
 import tilebelt from "@mapbox/tilebelt";
 
-const getAggregationParams = params => {
+class SearchParams {
+    constructor(query) {
+        this.query = query;
+    }
+    getSearchObject () {
+        const { query } = this;
+        return query ?
+        (/^[?#]/.test(query) ? query.slice(1) : query)
+            .split("&")
+            .reduce((params, param) => {
+                let [key, value] = param.split("=");
+                params[key] = value
+                ? decodeURIComponent(value.replace(/\+/g, " "))
+                : "";
+                return params;
+            }, {})
+        : {};
+    };
+    get (param) {
+        const searchParams = this.getSearchObject();
+        return searchParams[param];
+    };
+}
+
+
+const getAggregationParams = (params) => {
     const url = new URL(params.request.url);
+    if (!url.searchParams) {
+        url.searchParams = new SearchParams(params.request.url)
+    }
     const { x, y, z } = params.tileID.canonical;
 
     const quantizeOffset = parseInt(
-        url.searchParams.get("quantizeOffset") || "0"
+        url.searchParams.get("quantizeOffset") || url.searchParams["quantizeOffset"] || "0"
     );
-    const singleFrame = url.searchParams.get("singleFrame") === "true";
+    const singleFrame = url.searchParams.get("singleFrame") === "true" ;
     const interactive = url.searchParams.get("interactive") === "true";
     const aggregationParams =  {
         x, y, z,
@@ -49,24 +77,30 @@ const getAggregationParams = params => {
 
 const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
     const originalUrl = new URL(originalUrlString);
+    if (!originalUrl.searchParams) {
+        originalUrl.searchParams = new SearchParams(originalUrlString)
+    }
 
     const finalUrl = new URL(originalUrl.origin + originalUrl.pathname)
-
-    // We want proxy active as default when api tiles auth is required
-    const proxy = originalUrl.searchParams.get("proxy") !== "false";
-    finalUrl.searchParams.append('proxy', proxy);
-    finalUrl.searchParams.append('format', 'intArray');
-    finalUrl.searchParams.append('temporal-aggregation', singleFrame);
-
-    if (interval) {
-        finalUrl.searchParams.append('interval', interval);
-    }
-    const dateRange = originalUrl.searchParams.get("date-range")
-    if (dateRange) {
-        finalUrl.searchParams.append('date-range', decodeURI(dateRange))
+    if (!finalUrl.searchParams) {
+        finalUrl.searchParams = new SearchParams(originalUrl.origin + originalUrl.pathname)
     }
 
     let finalUrlStr = finalUrl.toString()
+
+    // We want proxy active as default when api tiles auth is required
+    const proxy = originalUrl.searchParams.get("proxy") !== "false";
+    finalUrlStr = `${finalUrlStr}?proxy=${proxy}`
+    finalUrlStr = `${finalUrlStr}&format=intArray`
+    finalUrlStr = `${finalUrlStr}&temporal-aggregation=${singleFrame}`
+
+    if (interval) {
+        finalUrlStr = `${finalUrlStr}&interval=${interval}`
+    }
+    const dateRange = originalUrl.searchParams.get("date-range")
+    if (dateRange) {
+        finalUrlStr = `${finalUrlStr}&date-range=${decodeURI(dateRange)}`
+    }
     const datasets = originalUrl.searchParams.get("datasets")
     if (datasets) {
         finalUrlStr = `${finalUrlStr}&${datasets}`
