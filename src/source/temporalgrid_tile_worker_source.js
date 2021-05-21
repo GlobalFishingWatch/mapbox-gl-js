@@ -81,7 +81,7 @@ const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
     }
     const finalUrlParamsArr = Object.entries(finalUrlParams)
         .filter(([key, value]) => {
-            return value !== undefined && value !== null
+            return value !== undefined && value !== null && value !== 'undefined' && value !== 'null'
         })
         .map(([key, value]) => {
             return `${key}=${value}`
