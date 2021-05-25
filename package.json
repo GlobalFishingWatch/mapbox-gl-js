@@ -1,8 +1,8 @@
 {
   "name": "@globalfishingwatch/mapbox-gl",
   "description": "A WebGL interactive maps library",
-  "version": "1.12.0-gfw.21",
-  "main": "dist/mapbox-gl.js",
+  "version": "1.12.0-gfw.22",
+  "main": "dist/mapbox-gl-dev.js",
   "style": "dist/mapbox-gl.css",
   "license": "SEE LICENSE IN LICENSE.txt",
   "types": "types/index.d.ts",
@@ -14,7 +14,7 @@
     "node": ">=12.x"
   },
   "dependencies": {
-    "@globalfishingwatch/fourwings-aggregate": "2.0.0",
+    "@globalfishingwatch/fourwings-aggregate": "4.0.1",
     "@mapbox/geojson-rewind": "^0.5.0",
     "@mapbox/geojson-types": "^1.0.2",
     "@mapbox/jsonlint-lines-primitives": "^2.0.2",
