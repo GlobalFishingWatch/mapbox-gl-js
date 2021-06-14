@@ -8,6 +8,27 @@ import { extend } from "../util/util";
 import { aggregateTile } from '@globalfishingwatch/fourwings-aggregate';
 import tilebelt from "@mapbox/tilebelt";
 
+const objectEntries = Object.entries ||
+  function (obj) {
+    const ownProps = Object.keys(obj)
+    let i = ownProps.length
+    const resArray = new Array(i) // preallocate the Array
+    while (i--) resArray[i] = [ownProps[i], obj[ownProps[i]]]
+    return resArray
+  }
+
+const objectFromEntries = Object.fromEntries ||
+  function (entries) {
+    if (!entries || !entries[Symbol.iterator]) {
+      throw new Error('Object.fromEntries() requires a single iterable argument')
+    }
+    const obj = {}
+    for (const [key, value] of entries) {
+      obj[key] = value
+    }
+    return obj
+  }
+
 class SearchParams {
     constructor(query) {
         this.query = query;
@@ -59,7 +80,7 @@ const getAggregationParams = (params) => {
         sublayerBreaks: finalParams.sublayerBreaks ? JSON.parse(finalParams.sublayerBreaks) : null,
         sublayerVisibility: finalParams.sublayerVisibility ? JSON.parse(finalParams.sublayerVisibility) : (new Array(finalParams.sublayerCount)).fill(true),
     };
-    return Object.fromEntries(Object.entries(aggregationParams).filter(([key, value]) => {
+    return objectFromEntries(objectEntries(aggregationParams).filter(([key, value]) => {
         return value !== undefined && value !== null
     }))
 };
