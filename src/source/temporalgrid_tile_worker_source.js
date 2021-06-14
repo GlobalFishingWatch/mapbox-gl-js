@@ -100,7 +100,7 @@ const getFinalurl = (originalUrlString, { singleFrame, interval }) => {
         interval,
         'date-range': decodeURI(searchParams.get("date-range")),
     }
-    const finalUrlParamsArr = Object.entries(finalUrlParams)
+    const finalUrlParamsArr = objectEntries(finalUrlParams)
         .filter(([key, value]) => {
             return value !== undefined && value !== null && value !== 'undefined' && value !== 'null'
         })
